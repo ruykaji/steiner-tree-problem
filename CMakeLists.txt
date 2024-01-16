@@ -21,16 +21,3 @@ target_include_directories(${PROJECT_NAME}_lib PUBLIC ${TARGET_DIRECTORIES})
 # Add subdirectory
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
-
-# Fetch JSON Library
-include(FetchContent)
-FetchContent_Declare(
-  json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.10.5
-)
-FetchContent_MakeAvailable(json)
-
-# Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(${PROJECT_NAME}_lib PUBLIC nlohmann_json::nlohmann_json)
