@@ -28,7 +28,7 @@ public:
      * @return Graph The constructed graph.
      * @throws std::runtime_error If the file cannot be opened or parsed.
      */
-    inline Graph input(const std::string& t_file_name)
+    Graph input(const std::string& t_file_name)
     {
         std::ifstream in_file(t_file_name);
 
@@ -62,7 +62,7 @@ private:
      * @param t_ss Reference to a string stream containing the line to parse.
      * @param t_graph Reference to the graph being constructed.
      */
-    inline void parse_line(std::istringstream& t_ss, Graph& t_graph)
+    void parse_line(std::istringstream& t_ss, Graph& t_graph)
     {
         std::string token;
         t_ss >> token;
@@ -84,7 +84,7 @@ private:
      * @param t_ss The string stream to validate.
      * @throws std::runtime_error If the stream is in a failed state.
      */
-    inline void validate_stream(const std::istringstream& t_ss) const
+    void validate_stream(const std::istringstream& t_ss) const
     {
         if (t_ss.fail()) {
             throw std::runtime_error("Invalid input at line " + std::to_string(m_line_number));
@@ -98,7 +98,7 @@ private:
      * @param t_size The size of the node container.
      * @throws std::runtime_error If the node index is out of bounds.
      */
-    inline void validate_bounds(int32_t t_node_index, int32_t t_size) const
+    void validate_bounds(int32_t t_node_index, int32_t t_size) const
     {
         if (t_node_index > t_size) {
             throw std::runtime_error("Node index out of bounds at line " + std::to_string(m_line_number));
@@ -115,7 +115,7 @@ private:
      * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the nodes have already been initialized or if the input is invalid.
      */
-    inline void parse_number_nodes(std::istringstream& t_ss, Graph& t_graph)
+    void parse_number_nodes(std::istringstream& t_ss, Graph& t_graph)
     {
         if (!t_graph.nodes.empty()) {
             throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
@@ -139,7 +139,7 @@ private:
      * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the terminal nodes have already been initialized or if the input is invalid.
      */
-    inline void parse_number_terminals(std::istringstream& t_ss, Graph& t_graph)
+    void parse_number_terminals(std::istringstream& t_ss, Graph& t_graph)
     {
         if (!t_graph.terminal_nodes.empty()) {
             throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
@@ -163,7 +163,7 @@ private:
      * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the input is invalid or if the node indices are out of bounds.
      */
-    inline void parse_edge(std::istringstream& t_ss, Graph& t_graph)
+    void parse_edge(std::istringstream& t_ss, Graph& t_graph)
     {
         int32_t from_node, to_node;
         double weight;
@@ -187,7 +187,7 @@ private:
      * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the input is invalid or if the node index is out of bounds.
      */
-    inline void parse_terminal(std::istringstream& t_ss, Graph& t_graph)
+    void parse_terminal(std::istringstream& t_ss, Graph& t_graph)
     {
         int32_t terminal_node;
         t_ss >> terminal_node;
@@ -208,7 +208,7 @@ public:
     OGraph() = default;
     ~OGraph() = default;
 
-    inline void out(const Graph& t_graph, const std::string& t_file_name) {
+    void out(const Graph& t_graph, const std::string& t_file_name) {
 
     };
 

@@ -33,21 +33,21 @@ public:
      *
      * @return Reference to the weight of the edge.
      */
-    inline constexpr double get_weight() const { return m_weight; };
+    double get_weight() const noexcept { return m_weight; };
 
     /**
      * @brief Get the source vertex of the edge.
      *
      * @return Reference to the source vertex of the edge.
      */
-    inline constexpr int32_t get_source() const { return m_source; };
+    int32_t get_source() const noexcept { return m_source; };
 
     /**
      * @brief Get the destination vertex of the edge.
      *
      * @return Reference to the destination vertex of the edge.
      */
-    inline constexpr int32_t get_destination() const { return m_destination; };
+    int32_t get_destination() const noexcept { return m_destination; };
 
     /**
      * @brief Compare this edge with another edge based on weight.
@@ -55,7 +55,7 @@ public:
      * @param t_lhs The edge to compare with.
      * @return True if this edge's weight is greater than the other edge's weight.
      */
-    inline constexpr bool operator>(const Edge& t_lhs) const { return m_weight > t_lhs.get_weight(); }
+    bool operator>(const Edge& t_lhs) const noexcept { return m_weight > t_lhs.get_weight(); }
 
 private:
     // Weight of the edge.
