@@ -113,9 +113,9 @@ private:
      * @param t_size The size of the node container.
      * @throws std::runtime_error If the node index is out of bounds.
      */
-    inline void validate_bounds(const int32_t& t_node_index, const int32_t& t_size) const
+    inline void validate_bounds(int32_t t_node_index, int32_t t_size) const
     {
-        if (t_node_index >= t_size) {
+        if (t_node_index > t_size) {
             throw std::runtime_error("Node index out of bounds at line " + std::to_string(m_line_number));
         }
     }
@@ -184,10 +184,10 @@ private:
         double weight;
 
         t_ss >> from_node >> to_node >> weight;
-
+        
         validate_stream(t_ss);
-        validate_bounds(from_node, static_cast<int32_t>(t_graph.nodes.size()));
-        validate_bounds(to_node, static_cast<int32_t>(t_graph.nodes.size()));
+        validate_bounds(from_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
+        validate_bounds(to_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
 
         t_graph.nodes[from_node].push_back(Edge(weight, from_node, to_node));
     }
@@ -208,7 +208,7 @@ private:
         t_ss >> terminal_node;
 
         validate_stream(t_ss);
-        validate_bounds(terminal_node, static_cast<int32_t>(t_graph.terminal_nodes.size()));
+        validate_bounds(terminal_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
 
         t_graph.terminal_nodes.push_back(terminal_node);
     }

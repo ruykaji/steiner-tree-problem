@@ -19,7 +19,7 @@ public:
      * @param t_source Source vertex of the edge.
      * @param t_destination Destination vertex of the edge.
      */
-    explicit Edge(const double& t_weight, const int32_t& t_source, const int32_t& t_destination)
+    explicit Edge(double t_weight, int32_t t_source, int32_t t_destination)
         : m_weight(t_weight)
         , m_source(t_source)
         , m_destination(t_destination) {};
@@ -31,21 +31,21 @@ public:
      *
      * @return Reference to the weight of the edge.
      */
-    inline constexpr double const& get_weight() const { return m_weight; };
+    inline constexpr double get_weight() const { return m_weight; };
 
     /**
      * @brief Get the source vertex of the edge.
      *
      * @return Reference to the source vertex of the edge.
      */
-    inline constexpr int32_t const& get_source() const { return m_source; };
+    inline constexpr int32_t get_source() const { return m_source; };
 
     /**
      * @brief Get the destination vertex of the edge.
      *
      * @return Reference to the destination vertex of the edge.
      */
-    inline constexpr int32_t const& get_destination() const { return m_destination; };
+    inline constexpr int32_t get_destination() const { return m_destination; };
 
     /**
      * @brief Compare this edge with another edge based on weight.

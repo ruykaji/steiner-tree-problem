@@ -12,7 +12,9 @@ include_directories(${GTEST_INCLUDE_DIRS})
 # Add tests
 # ==========================================================================
 
-set(TESTS)
+set(TESTS
+    iograph
+)
 
 # Iterate over each test
 foreach(TEST_NAME IN LISTS TESTS)
@@ -20,7 +22,7 @@ set(TEST_SRC "${TEST_NAME}.test.cpp")
 
     # Add test source 
     add_executable(${TEST_NAME} ${TEST_SRC})
-    target_compile_features(${TEST_NAME} PRIVATE cxx_std_17)
+    target_compile_features(${TEST_NAME} PRIVATE cxx_std_20)
 
     # Include google test directory
     target_include_directories(${TEST_NAME} PRIVATE ${GTEST_INCLUDE_DIRS})
