@@ -1,7 +1,9 @@
-#ifndef __EDGE_HPP__
-#define __EDGE_HPP__
+#ifndef __GRAPH_HPP__
+#define __GRAPH_HPP__
 
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 /**
  * @brief Class representing an edge in a graph.
@@ -64,6 +66,21 @@ private:
 
     // Destination vertex of the edge.
     int32_t m_destination;
+};
+
+/**
+ * @brief Structure representing a graph.
+ *
+ * The Graph consists of nodes which are connected by edges. Each node is
+ * represented by an integer identifier and stores a list of edges. Additionally,
+ * some nodes are designated as terminal nodes.
+ */
+struct Graph {
+    // Map of node IDs to their corresponding list of edges.
+    std::unordered_map<int32_t, std::vector<Edge>> nodes {};
+
+    // List of terminal node IDs.
+    std::vector<int32_t> terminal_nodes {};
 };
 
 #endif

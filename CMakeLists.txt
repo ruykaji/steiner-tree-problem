@@ -13,7 +13,9 @@ add_library(${PROJECT_NAME}_lib src/main.cpp)
 target_compile_features(${PROJECT_NAME}_lib PRIVATE c_std_17 cxx_std_20 cuda_std_20)
 
 # Include directories
-set(TARGET_DIRECTORIES)
+set(TARGET_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/src
+)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${TARGET_DIRECTORIES})
 target_include_directories(${PROJECT_NAME}_lib PUBLIC ${TARGET_DIRECTORIES})
