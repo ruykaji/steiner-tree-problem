@@ -1,10 +1,17 @@
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 
-constexpr char GRAPH_PATH[] = "./graph.txt";
+#include "cpu/mst.hpp"
+#include "iograph.hpp"
+
+#define __PROGRAM_VERSION__ "v1.0.0"
+
+constexpr char INPUT_GRAPH_PATH[] = "./graph.txt";
+constexpr char OUTPUT_GRAPH_PATH[] = "./mst.txt";
 constexpr char DEVICE[] = "cpu";
 
 static inline std::unordered_map<std::string, std::string> parse_arguments(int32_t argc, char const* argv[])
@@ -17,7 +24,8 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
     };
 
     std::unordered_map<std::string, std::string> options {
-        { "--graph", GRAPH_PATH },
+        { "--graph", INPUT_GRAPH_PATH },
+        { "--mst", OUTPUT_GRAPH_PATH },
         { "--device", DEVICE }
     };
 
@@ -43,15 +51,49 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
         options[key] = value;
     }
 
-    std::cout << std::flush;
-
     return options;
 }
 
 int main(int32_t argc, char const* argv[])
 {
+    auto start = std::chrono::high_resolution_clock::now();
+
     try {
         auto options = parse_arguments(argc, argv);
+
+        std::cout << "Steiner tree problem.\n";
+        std::cout << "Program version: " << __PROGRAM_VERSION__ << '\n';
+        std::cout << "C++ Standard: " << __cplusplus << "\n\n";
+
+        std::cout << "Program options:\n";
+        std::cout << "[--graph] Path to the input graph file: " << options["--graph"] << '\n';
+        std::cout << "[--mst] Path to the output mst file: " << options["--mst"] << '\n';
+        std::cout << "[--device] Device to use: " << options["--device"] << "\n\n";
+        std::cout << std::flush;
+
+        ReadGraph reader {};
+        WriteGraph writer {};
+        InGraph in_graph {};
+        OutGraph out_graph {};
+
+        in_graph = reader(options["--graph"]);
+
+        if (options["--device"] == "cpu") {
+            CpuMST mst {};
+            out_graph = mst(in_graph);
+        } else {
+        }
+
+        auto results = writer(out_graph, options["--mst"]);
+
+        std::cout << "Total MST nodes: " << results["total_nodes"] << '\n';
+        std::cout << "Total MST edges: " << results["total_edges"] << '\n';
+        std::cout << "Total MST weight: " << results["total_weight"] << '\n';
+
+        std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
+        std::cout << "\nExecution Time: " << diff.count() << " s\n";
+        std::cout << std::flush;
+
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
         return EXIT_FAILURE;

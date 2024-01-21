@@ -33,5 +33,5 @@ set(TEST_SRC "${TEST_NAME}.test.cpp")
     target_link_libraries(${TEST_NAME} PRIVATE GTest::gtest pthread ${PROJECT_NAME}_lib)
 
     # Add test
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} --gtest_break_on_failure)
 endforeach()

@@ -98,12 +98,17 @@ private:
  * represented by an integer identifier and stores a list of edges. Additionally,
  * some nodes are designated as terminal nodes.
  */
-struct Graph {
+struct InGraph {
     // Map of node IDs to their corresponding list of edges.
     std::unordered_map<int32_t, std::vector<Edge>> nodes {};
 
     // List of terminal node IDs.
     std::unordered_set<int32_t> terminal_nodes {};
 };
+
+/**
+ * @brief Output graph. Contains the all mst edges corrsponding to input graph and total weight.
+ */
+using OutGraph = std::pair<std::vector<std::pair<int32_t, int32_t>>, double>;
 
 #endif

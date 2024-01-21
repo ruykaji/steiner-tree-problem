@@ -16,10 +16,10 @@
  * This class provides an interface for graph input operations. It reads graph
  * data from a file, parses it, and constructs a Graph object.
  */
-class IGraph {
+class ReadGraph {
 public:
-    IGraph() = default;
-    ~IGraph() = default;
+    ReadGraph() = default;
+    ~ReadGraph() = default;
 
     /**
      * @brief Reads a graph from a file and constructs a Graph object.
@@ -28,7 +28,7 @@ public:
      * @return Graph The constructed graph.
      * @throws std::runtime_error If the file cannot be opened or parsed.
      */
-    Graph input(const std::string& t_file_name)
+    InGraph operator()(const std::string& t_file_name)
     {
         std::ifstream in_file(t_file_name);
 
@@ -36,10 +36,11 @@ public:
             throw std::runtime_error("Can't open file: " + t_file_name);
         }
 
-        Graph graph;
-        std::string line;
-
         m_line_number = 0;
+        m_graph.nodes.clear();
+        m_graph.terminal_nodes.clear();
+
+        std::string line;
 
         while (std::getline(in_file, line)) {
             ++m_line_number;
@@ -49,10 +50,12 @@ public:
             }
 
             std::istringstream ss(line);
-            parse_line(ss, graph);
+            parse_line(ss);
         }
 
-        return graph;
+        in_file.close();
+
+        return m_graph;
     };
 
 private:
@@ -62,19 +65,19 @@ private:
      * @param t_ss Reference to a string stream containing the line to parse.
      * @param t_graph Reference to the graph being constructed.
      */
-    void parse_line(std::istringstream& t_ss, Graph& t_graph)
+    void parse_line(std::istringstream& t_ss)
     {
         std::string token;
         t_ss >> token;
 
         if (token == "Nodes") {
-            parse_number_nodes(t_ss, t_graph);
+            parse_number_nodes(t_ss);
         } else if (token == "Terminals") {
-            parse_number_terminals(t_ss, t_graph);
+            parse_number_terminals(t_ss);
         } else if (token == "E") {
-            parse_edge(t_ss, t_graph);
+            parse_edge(t_ss);
         } else if (token == "T") {
-            parse_terminal(t_ss, t_graph);
+            parse_terminal(t_ss);
         }
     };
 
@@ -112,12 +115,11 @@ private:
      * graph's node map based on the number of nodes specified.
      *
      * @param t_ss Reference to the input string stream.
-     * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_nodes(std::istringstream& t_ss, Graph& t_graph)
+    void parse_number_nodes(std::istringstream& t_ss)
     {
-        if (!t_graph.nodes.empty()) {
+        if (!m_graph.nodes.empty()) {
             throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
         }
 
@@ -126,7 +128,7 @@ private:
 
         validate_stream(t_ss);
 
-        t_graph.nodes.reserve(num_nodes);
+        m_graph.nodes.reserve(num_nodes);
     }
 
     /**
@@ -136,12 +138,11 @@ private:
      * graph's terminal node list based on the number of terminal nodes specified.
      *
      * @param t_ss Reference to the input string stream.
-     * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the terminal nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_terminals(std::istringstream& t_ss, Graph& t_graph)
+    void parse_number_terminals(std::istringstream& t_ss)
     {
-        if (!t_graph.terminal_nodes.empty()) {
+        if (!m_graph.terminal_nodes.empty()) {
             throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
         }
 
@@ -150,7 +151,7 @@ private:
 
         validate_stream(t_ss);
 
-        t_graph.terminal_nodes.reserve(num_terminals);
+        m_graph.terminal_nodes.reserve(num_terminals);
     }
 
     /**
@@ -160,22 +161,21 @@ private:
      * to node, and weight) and adds the edge to the graph.
      *
      * @param t_ss Reference to the input string stream.
-     * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the input is invalid or if the node indices are out of bounds.
      */
-    void parse_edge(std::istringstream& t_ss, Graph& t_graph)
+    void parse_edge(std::istringstream& t_ss)
     {
         int32_t from_node, to_node;
         double weight;
 
         t_ss >> from_node >> to_node >> weight;
-        
-        validate_stream(t_ss);
-        validate_bounds(from_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
-        validate_bounds(to_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
 
-        t_graph.nodes[from_node].push_back(Edge(weight, from_node, to_node));
-        t_graph.nodes[to_node].push_back(Edge(weight, to_node, from_node));
+        validate_stream(t_ss);
+        validate_bounds(from_node, static_cast<int32_t>(m_graph.nodes.bucket_count()));
+        validate_bounds(to_node, static_cast<int32_t>(m_graph.nodes.bucket_count()));
+
+        m_graph.nodes[from_node].push_back(Edge(weight, from_node, to_node));
+        m_graph.nodes[to_node].push_back(Edge(weight, to_node, from_node));
     }
 
     /**
@@ -185,36 +185,72 @@ private:
      * and adds it to the graph's list of terminal nodes.
      *
      * @param t_ss Reference to the input string stream.
-     * @param t_graph Reference to the graph being constructed.
      * @throws std::runtime_error If the input is invalid or if the node index is out of bounds.
      */
-    void parse_terminal(std::istringstream& t_ss, Graph& t_graph)
+    void parse_terminal(std::istringstream& t_ss)
     {
         int32_t terminal_node;
         t_ss >> terminal_node;
 
         validate_stream(t_ss);
-        validate_bounds(terminal_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
+        validate_bounds(terminal_node, static_cast<int32_t>(m_graph.nodes.bucket_count()));
 
-        t_graph.terminal_nodes.insert(terminal_node);
+        m_graph.terminal_nodes.insert(terminal_node);
     }
 
 private:
     // Line number tracker for input file parsing.
     int32_t m_line_number {};
+
+    // In graph that will be constructed.
+    InGraph m_graph {};
 };
 
-class OGraph {
+/**
+ * @brief A class to write graph information to a file.
+ *
+ * WriteGraph provides functionality to output the details of a graph,
+ * including its edges, to a specified file. It also returns some statistics
+ * about the graph, such as the total number of nodes, edges, and the total weight.
+ */
+class WriteGraph {
 public:
-    OGraph() = default;
-    ~OGraph() = default;
+    WriteGraph() = default;
+    ~WriteGraph() = default;
 
-    void out(const Graph& t_graph, const std::string& t_file_name) {
+    /**
+     * @brief Overloaded function call operator to write graph data to a file.
+     *
+     * @param t_graph A constant reference to the OutGraph object representing the graph.
+     * @param t_file_name A constant reference to a string representing the name of the output file.
+     * @return std::unordered_map<std::string, std::string> A map containing statistics about the graph like total nodes, total edges, and total weight.
+     * @throws std::runtime_error if the file cannot be opened.
+     */
+    std::unordered_map<std::string, std::string> operator()(const OutGraph& t_graph, const std::string& t_file_name)
+    {
+        std::ofstream out_file(t_file_name);
 
+        if (!out_file) {
+            throw std::runtime_error("Can't open file: " + t_file_name);
+        }
+
+        std::unordered_map<std::string, std::string> results {};
+        std::unordered_set<int32_t> total_nodes {};
+        int32_t total_edges {};
+
+        for (const auto& edge : t_graph.first) {
+            total_edges += 1;
+            total_nodes.insert(edge.first);
+            total_nodes.insert(edge.second);
+            out_file << "E " << edge.first << ' ' << edge.second << '\n';
+        }
+
+        results["total_nodes"] = std::to_string(total_nodes.size());
+        results["total_edges"] = std::to_string(total_edges);
+        results["total_weight"] = std::to_string(t_graph.second);
+
+        return results;
     };
-
-private:
-    std::string m_file_name {};
 };
 
 #endif
