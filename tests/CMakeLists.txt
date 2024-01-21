@@ -14,6 +14,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 set(TESTS
     iograph
+    cpu_disjoin_set
 )
 
 # Iterate over each test
