@@ -175,6 +175,7 @@ private:
         validate_bounds(to_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
 
         t_graph.nodes[from_node].push_back(Edge(weight, from_node, to_node));
+        t_graph.nodes[to_node].push_back(Edge(weight, to_node, from_node));
     }
 
     /**
@@ -195,7 +196,7 @@ private:
         validate_stream(t_ss);
         validate_bounds(terminal_node, static_cast<int32_t>(t_graph.nodes.bucket_count()));
 
-        t_graph.terminal_nodes.push_back(terminal_node);
+        t_graph.terminal_nodes.insert(terminal_node);
     }
 
 private:
