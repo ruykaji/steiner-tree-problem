@@ -7,6 +7,7 @@
 #include <vector>
 
 /**
+ * @class Edge
  * @brief Class representing an edge in a graph.
  *
  * This class represents an edge with a weight, source, and destination.
@@ -75,23 +76,15 @@ public:
     bool operator>(const Edge& t_lhs) const noexcept { return m_weight > t_lhs.get_weight(); }
 
 private:
-    // Weight of the edge.
-    double m_weight {};
-
-    // Source vertex of the edge.
-    int32_t m_source {};
-
-    // Destination vertex of the edge.
-    int32_t m_destination {};
-
-    // Previous source for this edge
-    int32_t m_prev_source {};
-
-    // Previous destination for this edge
-    int32_t m_prev_destination {};
+    double m_weight {}; ///> Weight of the edge.
+    int32_t m_source {}; ///> Source vertex of the edge.
+    int32_t m_destination {}; ///> Destination vertex of the edge.
+    int32_t m_prev_source {}; ///> Previous source for this edge
+    int32_t m_prev_destination {}; ///> Previous destination for this edge
 };
 
 /**
+ * @struct
  * @brief Structure representing a graph.
  *
  * The Graph consists of nodes which are connected by edges. Each node is
@@ -99,14 +92,12 @@ private:
  * some nodes are designated as terminal nodes.
  */
 struct InGraph {
-    // Map of node IDs to their corresponding list of edges.
-    std::unordered_map<int32_t, std::vector<Edge>> nodes {};
-
-    // List of terminal node IDs.
-    std::unordered_set<int32_t> terminal_nodes {};
+    std::unordered_map<int32_t, std::vector<Edge>> nodes {}; ///> Map of node IDs to their corresponding list of edges.
+    std::unordered_set<int32_t> terminal_nodes {}; ///> List of terminal node IDs.
 };
 
 /**
+ * @typedef OutGraph
  * @brief Output graph. Contains the all mst edges corrsponding to input graph and total weight.
  */
 using OutGraph = std::pair<std::vector<std::pair<int32_t, int32_t>>, double>;

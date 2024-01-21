@@ -11,6 +11,7 @@
 #include "graph.hpp"
 
 /**
+ * @class ReadGraph
  * @brief Interface class for graph operations.
  *
  * This class provides an interface for graph input operations. It reads graph
@@ -199,14 +200,12 @@ private:
     }
 
 private:
-    // Line number tracker for input file parsing.
-    int32_t m_line_number {};
-
-    // In graph that will be constructed.
-    InGraph m_graph {};
+    int32_t m_line_number {}; ///> Line number tracker for input file parsing.
+    InGraph m_graph {}; ///> In graph that will be constructed.
 };
 
 /**
+ * @class WriteGraph
  * @brief A class to write graph information to a file.
  *
  * WriteGraph provides functionality to output the details of a graph,

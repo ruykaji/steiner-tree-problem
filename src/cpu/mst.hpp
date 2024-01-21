@@ -8,8 +8,27 @@
 #include "disjoin_set.hpp"
 #include "graph.hpp"
 
+/**
+ * @class CpuMST
+ * @brief Implements a Minimum Spanning Tree algorithm on a CPU.
+ *
+ * This class is designed to compute the Minimum Spanning Tree (MST) of a given input graph.
+ */
+
 class CpuMST {
+    /**
+     * @struct PairHash
+     * @brief Custom hash function for std::pair<int32_t, int32_t>.
+     *
+     * This struct provides a custom hash function for pairs of integers, which is used in std::unordered_set.
+     */
     struct PairHash {
+        /**
+         * @brief Hash function operator.
+         *
+         * @param p A constant reference to a pair of int32_t.
+         * @return A size_t representing the hash value of the input pair.
+         */
         std::size_t operator()(const std::pair<int32_t, int32_t>& p) const { return std::hash<int32_t> {}(p.first) ^ std::hash<int32_t> {}(p.second); }
     };
 
@@ -17,6 +36,12 @@ public:
     CpuMST() = default;
     ~CpuMST() = default;
 
+    /**
+     * @brief Function call operator to execute the MST algorithm.
+     *
+     * @param t_input_graph The input graph on which MST is to be computed.
+     * @return The minimum spanning tree of the input graph as an OutGraph object.
+     */
     OutGraph operator()(const InGraph& t_input_graph)
     {
         m_graph = std::move(t_input_graph);
@@ -28,6 +53,12 @@ public:
     };
 
 private:
+    /**
+     * @brief Initializes terminals and the priority queue for the MST algorithm.
+     *
+     * Sets up the source and length arrays for each node and populates
+     * the priority queue with initial edges.
+     */
     void reset() noexcept
     {
         m_terminal_set.clear();
@@ -39,6 +70,12 @@ private:
         m_mst_edges.clear();
     }
 
+    /**
+     * @brief Initializes terminals and the priority queue for the MST algorithm.
+     *
+     * Sets up the source and length arrays for each node and populates
+     * the priority queue with initial edges.
+     */
     void initialize_terminals_and_queue()
     {
         m_source.resize(m_graph.nodes.size(), -1);
@@ -56,8 +93,20 @@ private:
         }
     }
 
+    /**
+     * @brief Generates an ordered pair from two integers.
+     * @param t_a First integer.
+     * @param t_b Second integer.
+     * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.
+     */
     std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) { return std::make_pair(std::min(t_a, t_b), std::max(t_a, t_b)); };
 
+    /**
+     * @brief Processes edges in the priority queue to build the MST.
+     *
+     * Processes each edge in the priority queue based on certain conditions,
+     * thus contributing to the construction of the MST.
+     */
     void process_edges()
     {
         while (!m_edge_queue.empty()) {
@@ -93,6 +142,11 @@ private:
         }
     }
 
+    /**
+     * @brief Restores the minimum spanning tree from the computed edges.
+     *
+     * @return The minimum spanning tree as an OutGraph object.
+     */
     OutGraph restore_mst()
     {
         std::unordered_set<std::pair<int32_t, int32_t>, PairHash> result_path {};
@@ -141,13 +195,13 @@ private:
     }
 
 private:
-    InGraph m_graph {};
-    CpuDisjointSet m_terminal_set {};
-    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> m_edge_queue {};
-    std::vector<int32_t> m_source {};
-    std::vector<double> m_length {};
-    std::vector<int32_t> m_prev {};
-    std::vector<Edge> m_mst_edges {};
+    InGraph m_graph {}; ///< The input graph on which MST is computed.
+    CpuDisjointSet m_terminal_set {}; ///< Disjoint set data structure to manage terminals.
+    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> m_edge_queue {}; ///< Priority queue for edges based on their weights.
+    std::vector<int32_t> m_source {}; ///< Source vertices for the edges.
+    std::vector<double> m_length {}; ///< Lengths or weights of the edges.
+    std::vector<int32_t> m_prev {}; ///< Previous vertices in the path.
+    std::vector<Edge> m_mst_edges {}; ///< Edges that are part of the MST.
 };
 
 #endif
