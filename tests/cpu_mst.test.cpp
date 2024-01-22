@@ -61,14 +61,14 @@ std::unordered_map<int32_t, std::vector<int32_t>> to_adjacency_list(const OutGra
  * @param adj_list The adjacency list representation of the graph.
  * @return bool True if a cycle is detected, otherwise False.
  */
-bool dfs(int32_t node, std::unordered_map<int32_t, bool>& visited, std::unordered_map<int32_t, bool>& rec_stack, const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
+bool dfs_cyclic(int32_t node, std::unordered_map<int32_t, bool>& visited, std::unordered_map<int32_t, bool>& rec_stack, const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
 {
     if (!visited[node]) {
         visited[node] = true;
         rec_stack[node] = true;
 
         for (int32_t neighbor : adj_list.at(node)) {
-            if (!visited[node] && dfs(neighbor, visited, rec_stack, adj_list)) {
+            if (!visited[node] && dfs_cyclic(neighbor, visited, rec_stack, adj_list)) {
                 return true;
             } else if (rec_stack[neighbor]) {
                 return true;
@@ -92,11 +92,52 @@ bool is_cyclic(const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list
     std::unordered_map<int32_t, bool> rec_stack {};
 
     for (const auto& [node, _] : adj_list) {
-        if (dfs(node, visited, rec_stack, adj_list)) {
+        if (dfs_cyclic(node, visited, rec_stack, adj_list)) {
             return true;
         }
     }
     return false;
+}
+
+/**
+ * @brief Performs a depth-first search (DFS) to check for connections in a graph.
+ *
+ * @param node The node to start the DFS from.
+ * @param visited A set of nodes that have been visited.
+ * @param adj_list The adjacency list representation of the graph.
+ * @return bool True if a cycle is detected, otherwise False.
+ */
+void dfs_connected(int32_t node, std::unordered_set<int32_t>& visited, std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
+{
+    visited.insert(node);
+
+    for (int neighbor : adj_list[node]) {
+        if (visited.find(neighbor) == visited.end()) {
+            dfs_connected(neighbor, visited, adj_list);
+        }
+    }
+}
+
+/**
+ * @brief Checks if a graph represented by an adjacency list connected.
+ *
+ * @param adj_list The adjacency list representation of the graph.
+ * @return bool True if the graph is connected, otherwise False.
+ */
+bool is_connected(std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
+{
+    std::unordered_set<int32_t> visited {};
+    int32_t start_node = adj_list.begin()->first;
+
+    dfs_connected(start_node, visited, adj_list);
+
+    for (const auto& pair : adj_list) {
+        if (visited.find(pair.first) == visited.end()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 TEST_P(MSTOnCPUTrackTest, Tracks)
@@ -109,7 +150,14 @@ TEST_P(MSTOnCPUTrackTest, Tracks)
         InGraph in_graph = reader(file_path);
         OutGraph out_graph = mst(in_graph);
 
-        EXPECT_FALSE(is_cyclic(to_adjacency_list(out_graph)));
+        auto adj_list = to_adjacency_list(out_graph);
+
+        for (const auto& terminal_node : in_graph.terminal_nodes) {
+            EXPECT_TRUE(adj_list.count(terminal_node) != 0);
+        }
+
+        EXPECT_TRUE(is_connected(adj_list));
+        EXPECT_FALSE(is_cyclic(adj_list));
     } else {
         FAIL() << "File does not exist: " << file_path;
     }

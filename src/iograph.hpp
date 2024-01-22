@@ -73,6 +73,8 @@ private:
 
         if (token == "Nodes") {
             parse_number_nodes(t_ss);
+        } else if (token == "Edges") {
+            parse_number_edges(t_ss);
         } else if (token == "Terminals") {
             parse_number_terminals(t_ss);
         } else if (token == "E") {
@@ -133,6 +135,29 @@ private:
     }
 
     /**
+     * @brief Parses the number of edges from the input stream and initializes the graph's node container.
+     *
+     * This method should be called when a "Edges" token is encountered in the input file. It reserves space in the
+     * graph's node map based on the number of edges specified.
+     *
+     * @param t_ss Reference to the input string stream.
+     * @throws std::runtime_error If the edges have already been initialized or if the input is invalid.
+     */
+    void parse_number_edges(std::istringstream& t_ss)
+    {
+        if (!m_graph.nodes.empty()) {
+            throw std::runtime_error("Attempt to set size after adding a edge at line: " + std::to_string(m_line_number));
+        }
+
+        int32_t num_edges;
+        t_ss >> num_edges;
+
+        validate_stream(t_ss);
+
+        m_graph.map_edge_weight.reserve(num_edges);
+    }
+
+    /**
      * @brief Parses the number of terminal nodes from the input stream and initializes the graph's terminal node container.
      *
      * This method should be called when a "Terminals" token is encountered in the input file. It reserves space in the
@@ -177,6 +202,7 @@ private:
 
         m_graph.nodes[from_node].push_back(Edge(weight, from_node, to_node));
         m_graph.nodes[to_node].push_back(Edge(weight, to_node, from_node));
+        m_graph.map_edge_weight[ordered_pair(from_node, to_node)] = weight;
     }
 
     /**

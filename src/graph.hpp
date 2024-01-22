@@ -84,6 +84,35 @@ private:
 };
 
 /**
+ * @struct PairHash
+ * @brief Custom hash function for std::pair<int32_t, int32_t>.
+ *
+ * This struct provides a custom hash function for pairs of integers, which is used in std::unordered_set.
+ */
+struct PairHash {
+    /**
+     * @brief Hash function operator.
+     *
+     * @param p A constant reference to a pair of int32_t.
+     * @return A size_t representing the hash value of the input pair.
+     */
+    std::size_t operator()(const std::pair<int32_t, int32_t>& p) const
+    {
+        auto b = std::hash<int32_t> {}(p.first);
+        auto a = std::hash<int32_t> {}(p.second);
+        return (a + b - 2) * (a + b - 1) / 2 + a;
+    }
+};
+
+/**
+ * @brief Generates an ordered pair from two integers.
+ * @param t_a First integer.
+ * @param t_b Second integer.
+ * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.
+ */
+inline std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) noexcept { return std::make_pair(std::min(t_a, t_b), std::max(t_a, t_b)); };
+
+/**
  * @struct
  * @brief Structure representing a graph.
  *
@@ -93,6 +122,7 @@ private:
  */
 struct InGraph {
     std::unordered_map<int32_t, std::vector<Edge>> nodes {}; ///> Map of node IDs to their corresponding list of edges.
+    std::unordered_map<std::pair<int32_t, int32_t>, double, PairHash> map_edge_weight {}; ///> Map of edges to their weights in graph.
     std::unordered_set<int32_t> terminal_nodes {}; ///> List of terminal node IDs.
 };
 

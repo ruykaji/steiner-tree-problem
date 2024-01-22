@@ -14,24 +14,7 @@
  *
  * This class is designed to compute the Minimum Spanning Tree (MST) of a given input graph.
  */
-
 class CpuMST {
-    /**
-     * @struct PairHash
-     * @brief Custom hash function for std::pair<int32_t, int32_t>.
-     *
-     * This struct provides a custom hash function for pairs of integers, which is used in std::unordered_set.
-     */
-    struct PairHash {
-        /**
-         * @brief Hash function operator.
-         *
-         * @param p A constant reference to a pair of int32_t.
-         * @return A size_t representing the hash value of the input pair.
-         */
-        std::size_t operator()(const std::pair<int32_t, int32_t>& p) const { return std::hash<int32_t> {}(p.first) ^ std::hash<int32_t> {}(p.second); }
-    };
-
 public:
     CpuMST() = default;
     ~CpuMST() = default;
@@ -94,14 +77,6 @@ private:
     }
 
     /**
-     * @brief Generates an ordered pair from two integers.
-     * @param t_a First integer.
-     * @param t_b Second integer.
-     * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.
-     */
-    std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) { return std::make_pair(std::min(t_a, t_b), std::max(t_a, t_b)); };
-
-    /**
      * @brief Processes edges in the priority queue to build the MST.
      *
      * Processes each edge in the priority queue based on certain conditions,
@@ -157,38 +132,41 @@ private:
             int32_t destination = edge.get_destination();
             int32_t prev_source = edge.get_prev_source();
             int32_t prev_destination = edge.get_prev_destination();
+            std::pair<int32_t, int32_t> pair {};
+
+            auto add_edge = [&](const std::pair<int32_t, int32_t>& edge) {
+                if (result_path.insert(edge).second) {
+                    mst_weight += m_graph.map_edge_weight[edge];
+                }
+            };
 
             while (prev_source != -1 && m_prev[prev_source - 1] != -1) {
-                result_path.insert(ordered_pair(m_prev[prev_source - 1], prev_source));
+                pair = ordered_pair(m_prev[prev_source - 1], prev_source);
                 prev_source = m_prev[prev_source - 1];
+                add_edge(pair);
             }
 
             while (prev_destination != -1 && m_prev[prev_destination - 1] != -1) {
-                result_path.insert(ordered_pair(prev_destination, m_prev[prev_destination - 1]));
+                pair = ordered_pair(prev_destination, m_prev[prev_destination - 1]);
                 prev_destination = m_prev[prev_destination - 1];
+                add_edge(pair);
             }
 
             if (prev_source == -1 && prev_destination == -1) {
-                result_path.insert(ordered_pair(source, destination));
+                pair = ordered_pair(source, destination);
+                add_edge(pair);
             } else {
-                if (prev_source != -1) {
-                    result_path.insert(ordered_pair(source, prev_source));
-                } else {
-                    result_path.insert(ordered_pair(source, edge.get_prev_destination()));
-                }
+                pair = prev_source != -1 ? ordered_pair(source, prev_source) : ordered_pair(source, edge.get_prev_destination());
+                add_edge(pair);
 
-                if (prev_destination != -1) {
-                    result_path.insert(ordered_pair(prev_destination, destination));
-                } else {
-                    result_path.insert(ordered_pair(edge.get_prev_source(), destination));
-                }
+                pair = prev_destination != -1 ? ordered_pair(prev_destination, destination) : ordered_pair(edge.get_prev_source(), destination);
+                add_edge(pair);
 
                 if (prev_source != -1 && prev_destination != -1) {
-                    result_path.insert(ordered_pair(edge.get_prev_source(), edge.get_prev_destination()));
+                    pair = ordered_pair(edge.get_prev_source(), edge.get_prev_destination());
+                    add_edge(pair);
                 }
             }
-
-            mst_weight += edge.get_weight();
         }
 
         return std::make_pair(std::vector<std::pair<int32_t, int32_t>>(result_path.begin(), result_path.end()), mst_weight);
