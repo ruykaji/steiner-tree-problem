@@ -56,27 +56,25 @@ std::unordered_map<int32_t, std::vector<int32_t>> to_adjacency_list(const OutGra
  * @brief Performs a depth-first search (DFS) to check for cycles in a graph.
  *
  * @param node The node to start the DFS from.
+ * @param parent The parent node.
  * @param visited A set of nodes that have been visited.
- * @param rec_stack A set of nodes that are currently in the recursion stack.
  * @param adj_list The adjacency list representation of the graph.
  * @return bool True if a cycle is detected, otherwise False.
  */
-bool dfs_cyclic(int32_t node, std::unordered_map<int32_t, bool>& visited, std::unordered_map<int32_t, bool>& rec_stack, const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
+bool dfs_cyclic(int32_t node, int32_t parent, std::unordered_map<int32_t, bool>& visited, const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
 {
-    if (!visited[node]) {
-        visited[node] = true;
-        rec_stack[node] = true;
+    if (visited[node]) {
+        return true;
+    }
 
-        for (int32_t neighbor : adj_list.at(node)) {
-            if (!visited[node] && dfs_cyclic(neighbor, visited, rec_stack, adj_list)) {
-                return true;
-            } else if (rec_stack[neighbor]) {
-                return true;
-            }
+    visited[node] = true;
+
+    for (int32_t child : adj_list.at(node)) {
+        if (child != parent && dfs_cyclic(child, node, visited, adj_list)) {
+            return true;
         }
     }
 
-    rec_stack[node] = false;
     return false;
 }
 
@@ -91,11 +89,12 @@ bool is_cyclic(const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list
     std::unordered_map<int32_t, bool> visited {};
     std::unordered_map<int32_t, bool> rec_stack {};
 
-    for (const auto& [node, _] : adj_list) {
-        if (dfs_cyclic(node, visited, rec_stack, adj_list)) {
-            return true;
-        }
+    auto start_node = adj_list.begin()->first;
+
+    if (dfs_cyclic(start_node, start_node, visited, adj_list)) {
+        return true;
     }
+
     return false;
 }
 
@@ -103,16 +102,16 @@ bool is_cyclic(const std::unordered_map<int32_t, std::vector<int32_t>>& adj_list
  * @brief Performs a depth-first search (DFS) to check for connections in a graph.
  *
  * @param node The node to start the DFS from.
- * @param visited A set of nodes that have been visited.
+ * @param visited A map of nodes that have been visited.
  * @param adj_list The adjacency list representation of the graph.
  * @return bool True if a cycle is detected, otherwise False.
  */
-void dfs_connected(int32_t node, std::unordered_set<int32_t>& visited, std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
+void dfs_connected(int32_t node, std::unordered_map<int32_t, bool>& visited, std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
 {
-    visited.insert(node);
+    visited[node] = true;
 
-    for (int neighbor : adj_list[node]) {
-        if (visited.find(neighbor) == visited.end()) {
+    for (int32_t neighbor : adj_list[node]) {
+        if (!visited[neighbor]) {
             dfs_connected(neighbor, visited, adj_list);
         }
     }
@@ -126,13 +125,13 @@ void dfs_connected(int32_t node, std::unordered_set<int32_t>& visited, std::unor
  */
 bool is_connected(std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
 {
-    std::unordered_set<int32_t> visited {};
+    std::unordered_map<int32_t, bool> visited {};
     int32_t start_node = adj_list.begin()->first;
 
     dfs_connected(start_node, visited, adj_list);
 
     for (const auto& pair : adj_list) {
-        if (visited.find(pair.first) == visited.end()) {
+        if (!visited[pair.first]) {
             return false;
         }
     }

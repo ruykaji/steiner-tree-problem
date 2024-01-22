@@ -2,8 +2,10 @@
 #define __CPU_MST_HPP__
 
 #include <iostream>
+#include <mutex>
 #include <numeric>
 #include <queue>
+#include <thread>
 
 #include "disjoin_set.hpp"
 #include "graph.hpp"
@@ -44,9 +46,8 @@ private:
      */
     void reset() noexcept
     {
+        m_edge_queue = std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>>();
         m_terminal_set.clear();
-        std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>>().swap(m_edge_queue);
-
         m_source.clear();
         m_length.clear();
         m_prev.clear();
@@ -84,7 +85,7 @@ private:
      */
     void process_edges()
     {
-        while (!m_edge_queue.empty()) {
+        while (!m_terminal_set.is_one_set()) {
             Edge edge = m_edge_queue.top();
             m_edge_queue.pop();
 
@@ -93,12 +94,9 @@ private:
             int32_t prev_source = edge.get_prev_source();
             double weight = edge.get_weight();
 
-            int32_t& source_of_destination = m_source[destination - 1];
-            double& length_of_destination = m_length[destination - 1];
-
-            if (source_of_destination == -1) {
-                source_of_destination = source;
-                length_of_destination = weight;
+            if (m_source[destination - 1] == -1) {
+                m_source[destination - 1] = source;
+                m_length[destination - 1] = weight;
                 m_prev[destination - 1] = prev_source;
 
                 for (const auto& e : m_graph.nodes[destination]) {
@@ -106,12 +104,12 @@ private:
                         m_edge_queue.emplace(Edge(e.get_weight() + weight, source, e.get_destination(), destination, -1));
                     }
                 }
-            } else if (m_terminal_set.find(source_of_destination) != m_terminal_set.find(source)) {
+            } else if (m_terminal_set.find(m_source[destination - 1]) != m_terminal_set.find(source)) {
                 if (m_graph.terminal_nodes.find(destination) != m_graph.terminal_nodes.end()) {
-                    m_terminal_set.union_sets(source, source_of_destination);
+                    m_terminal_set.union_sets(source, destination);
                     m_mst_edges.emplace_back(edge);
                 } else {
-                    m_edge_queue.emplace(Edge(length_of_destination + weight, source, source_of_destination, prev_source, destination));
+                    m_edge_queue.emplace(Edge(m_length[destination - 1] + weight, source, m_source[destination - 1], prev_source, destination));
                 }
             }
         }
@@ -127,18 +125,18 @@ private:
         std::unordered_set<std::pair<int32_t, int32_t>, PairHash> result_path {};
         double mst_weight {};
 
+        auto add_edge = [&](const std::pair<int32_t, int32_t>& edge) {
+            if (result_path.insert(edge).second) {
+                mst_weight += m_graph.map_edge_weight[edge];
+            }
+        };
+
         for (const auto& edge : m_mst_edges) {
             int32_t source = edge.get_source();
             int32_t destination = edge.get_destination();
             int32_t prev_source = edge.get_prev_source();
             int32_t prev_destination = edge.get_prev_destination();
             std::pair<int32_t, int32_t> pair {};
-
-            auto add_edge = [&](const std::pair<int32_t, int32_t>& edge) {
-                if (result_path.insert(edge).second) {
-                    mst_weight += m_graph.map_edge_weight[edge];
-                }
-            };
 
             while (prev_source != -1 && m_prev[prev_source - 1] != -1) {
                 pair = ordered_pair(m_prev[prev_source - 1], prev_source);
@@ -180,6 +178,7 @@ private:
     std::vector<double> m_length {}; ///< Lengths or weights of the edges.
     std::vector<int32_t> m_prev {}; ///< Previous vertices in the path.
     std::vector<Edge> m_mst_edges {}; ///< Edges that are part of the MST.
+    std::mutex m_mutex {};
 };
 
 #endif
