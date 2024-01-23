@@ -59,6 +59,34 @@ public:
         return m_graph;
     };
 
+    /**
+     * @brief Reads a graph from a inline graph description.
+     *
+     * @param t_inline_file The inlined graph.
+     * @return Graph The constructed graph.
+     */
+    InGraph operator()(std::istringstream& t_inline_file)
+    {
+        m_line_number = 0;
+        m_graph.nodes.clear();
+        m_graph.terminal_nodes.clear();
+
+        std::string line;
+
+        while (std::getline(t_inline_file, line)) {
+            ++m_line_number;
+
+            if (line.empty()) {
+                continue;
+            }
+
+            std::istringstream ss(line);
+            parse_line(ss);
+        }
+
+        return m_graph;
+    };
+
 private:
     /**
      * @brief Parses a single line from the input file.
@@ -275,6 +303,25 @@ public:
         results["total_weight"] = std::to_string(t_graph.second);
 
         return results;
+    };
+
+    /**
+     * @brief Overloaded function call operator to write graph data to a file.
+     *
+     * @param t_graph A constant reference to the OutGraph object representing the graph.
+     * @param t_file_name A constant reference to a string representing the name of the output file.
+     * @return std::unordered_map<std::string, std::string> A map containing statistics about the graph like total nodes, total edges, and total weight.
+     * @throws std::runtime_error if the file cannot be opened.
+     */
+    std::string operator()(const OutGraph& t_graph)
+    {
+        std::ostringstream out_line {};
+
+        for (const auto& edge : t_graph.first) {
+            out_line << "E " << edge.first << ' ' << edge.second << '\n';
+        }
+
+        return out_line.str();
     };
 };
 

@@ -12,6 +12,7 @@
 
 constexpr char INPUT_GRAPH_PATH[] = "./graph.txt";
 constexpr char OUTPUT_GRAPH_PATH[] = "./mst.txt";
+constexpr char STREAM[] = "no";
 constexpr char DEVICE[] = "cpu";
 
 static inline std::unordered_map<std::string, std::string> parse_arguments(int32_t argc, char const* argv[])
@@ -26,7 +27,8 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
     std::unordered_map<std::string, std::string> options {
         { "--graph", INPUT_GRAPH_PATH },
         { "--mst", OUTPUT_GRAPH_PATH },
-        { "--device", DEVICE }
+        { "--device", DEVICE },
+        { "--stream", STREAM }
     };
 
     for (int i = 1; i < argc; i += 2) {
@@ -46,6 +48,10 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
             if (!(value == "cpu" || value == "gpu")) {
                 throw std::runtime_error("Invalid device option: " + value + ". Choose one of ['cpu', 'gpu'].");
             }
+        } else if (key == "--stream") {
+            if (!(value == "no" || value == "yes")) {
+                throw std::runtime_error("Invalid device option: " + value + ". Choose one of ['no', 'yes'].");
+            }
         }
 
         options[key] = value;
@@ -61,43 +67,73 @@ int main(int32_t argc, char const* argv[])
     try {
         auto options = parse_arguments(argc, argv);
 
-        std::cout << "Steiner tree problem.\n";
-        std::cout << "Program version: " << __PROGRAM_VERSION__ << '\n';
-        std::cout << "C++ Standard: " << __cplusplus << "\n\n";
-
-        std::cout << "Program options:\n";
-        std::cout << "[--graph] Path to the input graph file: " << options["--graph"] << '\n';
-        std::cout << "[--mst] Path to the output mst file: " << options["--mst"] << '\n';
-        std::cout << "[--device] Device to use: " << options["--device"] << "\n\n";
-        std::cout << std::flush;
-
         ReadGraph reader {};
         WriteGraph writer {};
         InGraph in_graph {};
         OutGraph out_graph {};
 
-        in_graph = reader(options["--graph"]);
+        if (options["--stream"] == "no") {
+            std::cout << "Steiner tree problem.\n";
+            std::cout << "Program version: " << __PROGRAM_VERSION__ << '\n';
+            std::cout << "C++ Standard: " << __cplusplus << "\n\n";
+            std::cout << "Program options:\n";
+            std::cout << "[--graph] Path to the input graph file: " << options["--graph"] << '\n';
+            std::cout << "[--mst] Path to the output mst file: " << options["--mst"] << '\n';
+            std::cout << "[--device] Device to use: " << options["--device"] << "\n";
+            std::cout << "[--stream] Stream mode: " << options["--stream"] << "\n\n";
+            std::cout << std::flush;
 
-        if (options["--device"] == "cpu") {
-            CpuMST mst {};
-            out_graph = mst(in_graph);
+            in_graph = reader(options["--graph"]);
+
+            if (options["--device"] == "cpu") {
+                CpuMST mst {};
+                out_graph = mst(in_graph);
+            } else {
+            }
+
+            auto results = writer(out_graph, options["--mst"]);
+
+            std::cout << "Total MST nodes: " << results["total_nodes"] << '\n';
+            std::cout << "Total MST edges: " << results["total_edges"] << '\n';
+            std::cout << "Total MST weight: " << results["total_weight"] << '\n';
+
+            std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
+            std::cout << "\nExecution Time: " << diff.count() << " s\n";
+            std::cout << std::flush;
         } else {
+            std::string stream_token;
+
+            while (true) {
+                std::ostringstream iss {};
+
+                while (std::getline(std::cin, stream_token)) {
+                    if (stream_token == "EXIT") {
+                        std::cout << "Exit successfully." << std::endl;
+                        return EXIT_SUCCESS;
+                    }
+
+                    if (stream_token == "EOF") {
+                        break;
+                    }
+
+                    iss << stream_token << '\n';
+                }
+
+                std::istringstream oss(iss.str());
+                in_graph = reader(oss);
+
+                if (options["--device"] == "cpu") {
+                    CpuMST mst {};
+                    out_graph = mst(in_graph);
+                }
+
+                std::cout << writer(out_graph) << std::endl;
+            }
         }
-
-        auto results = writer(out_graph, options["--mst"]);
-
-        std::cout << "Total MST nodes: " << results["total_nodes"] << '\n';
-        std::cout << "Total MST edges: " << results["total_edges"] << '\n';
-        std::cout << "Total MST weight: " << results["total_weight"] << '\n';
-
-        std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
-        std::cout << "\nExecution Time: " << diff.count() << " s\n";
-        std::cout << std::flush;
-
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << '\n';
+        std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
