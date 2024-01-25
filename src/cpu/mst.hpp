@@ -2,10 +2,9 @@
 #define __CPU_MST_HPP__
 
 #include <iostream>
-#include <mutex>
+#include <memory>
 #include <numeric>
 #include <queue>
-#include <thread>
 
 #include "disjoin_set.hpp"
 #include "graph.hpp"
@@ -27,13 +26,22 @@ public:
      * @param t_input_graph The input graph on which MST is to be computed.
      * @return The minimum spanning tree of the input graph as an OutGraph object.
      */
-    OutGraph operator()(const InGraph& t_input_graph)
+    std::unique_ptr<OutGraph> operator()(std::unique_ptr<InGraph> t_input_graph)
     {
+        if (t_input_graph->nodes.size() == 0) {
+            throw std::runtime_error("Graph doesn't contain any nodes!");
+        }
+
+        if (t_input_graph->terminal_nodes.size() == 0) {
+            throw std::runtime_error("Graph doesn't contain any terminal nodes!");
+        }
+
         m_graph = std::move(t_input_graph);
 
         reset();
         initialize_terminals_and_queue();
         process_edges();
+
         return restore_mst();
     };
 
@@ -62,16 +70,17 @@ private:
      */
     void initialize_terminals_and_queue()
     {
-        m_source.resize(m_graph.nodes.size(), -1);
-        m_prev.resize(m_graph.nodes.size(), -1);
-        m_length.resize(m_graph.nodes.size(), std::numeric_limits<double>::max());
+        m_source.resize(m_graph->nodes.size(), -1);
+        m_prev.resize(m_graph->nodes.size(), -1);
+        m_length.resize(m_graph->nodes.size(), 0.0);
+        m_mst_edges.reserve(m_graph->terminal_nodes.size() - 1);
 
-        for (const auto& terminal : m_graph.terminal_nodes) {
+        for (const auto& terminal : m_graph->terminal_nodes) {
             m_terminal_set.make_set(terminal);
             m_source[terminal - 1] = terminal;
             m_length[terminal - 1] = 0;
 
-            for (const auto& edge : m_graph.nodes[terminal]) {
+            for (const auto& edge : m_graph->nodes[terminal]) {
                 m_edge_queue.emplace(edge);
             }
         }
@@ -99,13 +108,15 @@ private:
                 m_length[destination - 1] = weight;
                 m_prev[destination - 1] = prev_source;
 
-                for (const auto& e : m_graph.nodes[destination]) {
-                    if (m_source[e.get_destination() - 1] == -1) {
-                        m_edge_queue.emplace(Edge(e.get_weight() + weight, source, e.get_destination(), destination, -1));
+                for (const auto& e : m_graph->nodes[destination]) {
+                    int32_t local_destination = e.get_destination();
+
+                    if (m_source[local_destination - 1] == -1) {
+                        m_edge_queue.emplace(Edge(e.get_weight() + weight, source, local_destination, destination, -1));
                     }
                 }
             } else if (m_terminal_set.find(m_source[destination - 1]) != m_terminal_set.find(source)) {
-                if (m_graph.terminal_nodes.find(destination) != m_graph.terminal_nodes.end()) {
+                if (m_graph->terminal_nodes.find(destination) != m_graph->terminal_nodes.end()) {
                     m_terminal_set.union_sets(source, destination);
                     m_mst_edges.emplace_back(edge);
                 } else {
@@ -120,14 +131,14 @@ private:
      *
      * @return The minimum spanning tree as an OutGraph object.
      */
-    OutGraph restore_mst()
+    std::unique_ptr<OutGraph> restore_mst()
     {
         std::unordered_set<std::pair<int32_t, int32_t>, PairHash> result_path {};
         double mst_weight {};
 
         auto add_edge = [&](const std::pair<int32_t, int32_t>& edge) {
             if (result_path.insert(edge).second) {
-                mst_weight += m_graph.map_edge_weight[edge];
+                mst_weight += m_graph->map_edge_weight[edge];
             }
         };
 
@@ -167,18 +178,17 @@ private:
             }
         }
 
-        return std::make_pair(std::vector<std::pair<int32_t, int32_t>>(result_path.begin(), result_path.end()), mst_weight);
+        return std::make_unique<OutGraph>(std::make_pair(std::vector<std::pair<int32_t, int32_t>>(result_path.begin(), result_path.end()), mst_weight));
     }
 
 private:
-    InGraph m_graph {}; ///< The input graph on which MST is computed.
     CpuDisjointSet m_terminal_set {}; ///< Disjoint set data structure to manage terminals.
+    std::unique_ptr<InGraph> m_graph {}; ///< The input graph on which MST is computed.
     std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> m_edge_queue {}; ///< Priority queue for edges based on their weights.
     std::vector<int32_t> m_source {}; ///< Source vertices for the edges.
     std::vector<double> m_length {}; ///< Lengths or weights of the edges.
     std::vector<int32_t> m_prev {}; ///< Previous vertices in the path.
     std::vector<Edge> m_mst_edges {}; ///< Edges that are part of the MST.
-    std::mutex m_mutex {};
 };
 
 #endif

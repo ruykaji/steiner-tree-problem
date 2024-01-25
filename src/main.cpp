@@ -1,5 +1,6 @@
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -8,21 +9,18 @@
 #include "cpu/mst.hpp"
 #include "iograph.hpp"
 
-#define __PROGRAM_VERSION__ "v1.0.0"
+#define __PROGRAM_VERSION__ "v1.1.5"
 
 constexpr char INPUT_GRAPH_PATH[] = "./graph.txt";
 constexpr char OUTPUT_GRAPH_PATH[] = "./mst.txt";
 constexpr char STREAM[] = "no";
 constexpr char DEVICE[] = "cpu";
 
-static inline std::unordered_map<std::string, std::string> parse_arguments(int32_t argc, char const* argv[])
+inline std::unordered_map<std::string, std::string> parse_arguments(int argc, char const* argv[])
 {
-    auto get_value = [argc, argv](int32_t t_expected, const std::string& t_key) {
-        if (t_expected >= argc) {
-            throw std::runtime_error("Missing value for argument: " + t_key);
-        }
-        return std::string(argv[t_expected]);
-    };
+    if (argc % 2 == 0) {
+        throw std::runtime_error("Invalid number of arguments. Arguments must be in key-value pairs.");
+    }
 
     std::unordered_map<std::string, std::string> options {
         { "--graph", INPUT_GRAPH_PATH },
@@ -34,24 +32,18 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
     for (int i = 1; i < argc; i += 2) {
         std::string key = argv[i];
 
-        if (options.find(key) == options.end()) {
+        if (options.count(key) == 0) {
             throw std::runtime_error("Unknown argument: " + key);
         }
 
-        std::string value = get_value(i + 1, key);
+        std::string value = argv[i + 1];
 
-        if (key == "--graph") {
-            if (!std::filesystem::exists(value)) {
-                throw std::runtime_error("Can not find graph with path: " + value);
-            }
-        } else if (key == "--device") {
-            if (!(value == "cpu" || value == "gpu")) {
-                throw std::runtime_error("Invalid device option: " + value + ". Choose one of ['cpu', 'gpu'].");
-            }
-        } else if (key == "--stream") {
-            if (!(value == "no" || value == "yes")) {
-                throw std::runtime_error("Invalid device option: " + value + ". Choose one of ['no', 'yes'].");
-            }
+        if (key == "--device" && value != "cpu" && value != "gpu") {
+            throw std::runtime_error("Invalid device option: " + value + ". Choose 'cpu' or 'gpu'.");
+        }
+
+        if (key == "--stream" && value != "no" && value != "yes") {
+            throw std::runtime_error("Invalid stream option: " + value + ". Choose 'no' or 'yes'.");
         }
 
         options[key] = value;
@@ -60,75 +52,111 @@ static inline std::unordered_map<std::string, std::string> parse_arguments(int32
     return options;
 }
 
-int main(int32_t argc, char const* argv[])
+inline int32_t process_graph(const std::unordered_map<std::string, std::string>& t_options)
 {
+    std::cout << "Steiner tree problem.\n";
+    std::cout << "Program version: " << __PROGRAM_VERSION__ << '\n';
+    std::cout << "C++ Standard: " << __cplusplus << "\n\n";
+    std::cout << "Program options:\n";
+    std::cout << "[--graph] Path to the input graph file: " << t_options.at("--graph") << '\n';
+    std::cout << "[--mst] Path to the output mst file: " << t_options.at("--mst") << '\n';
+    std::cout << "[--device] Device to use: " << t_options.at("--device") << "\n";
+    std::cout << "[--stream] Stream mode: " << t_options.at("--stream") << "\n\n";
+    std::cout << std::flush;
+
     auto start = std::chrono::high_resolution_clock::now();
 
+    ReadGraph reader {};
+    WriteGraph writer {};
+    std::unique_ptr<InGraph> in_graph {};
+    std::unique_ptr<OutGraph> out_graph {};
+    std::ifstream in_file(t_options.at("--graph"));
+
+    if (!in_file) {
+        throw std::runtime_error("Can't open the file: " + t_options.at("--graph"));
+    }
+
+    in_graph = reader(in_file);
+
+    if (t_options.at("--device") == "cpu") {
+        CpuMST mst {};
+        out_graph = mst(std::move(in_graph));
+    }
+
+    std::cout << "Total MST nodes: " << out_graph->first.size() << '\n';
+    std::cout << "Total MST weight: " << out_graph->second << '\n';
+
+    std::ofstream out_file(t_options.at("--mst"));
+
+    if (!out_file) {
+        throw std::runtime_error("Can't open the file: " + t_options.at("--mst"));
+    }
+
+    writer(std::move(out_graph), out_file);
+
+    std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
+
+    std::cout << "\nExecution Time: " << diff.count() << "s" << std::endl;
+
+    return EXIT_SUCCESS;
+};
+
+inline int stream_graph(const std::unordered_map<std::string, std::string>& t_options)
+{
+    ReadGraph reader {};
+    WriteGraph writer {};
+    std::unique_ptr<InGraph> in_graph {};
+    std::unique_ptr<OutGraph> out_graph {};
+    std::ostringstream iss {};
+    std::istringstream oss {};
+    std::string stream_token {};
+
+    while (true) {
+        std::size_t line_number {};
+
+        iss.clear();
+        oss.clear();
+
+        while (std::getline(std::cin, stream_token)) {
+            ++line_number;
+
+            if (stream_token == "EXIT") {
+                std::cout << "Exit successfully." << std::endl;
+                return EXIT_SUCCESS;
+            }
+
+            if (stream_token == "EOF") {
+                break;
+            }
+
+            iss << stream_token << '\n';
+
+            if (iss.fail()) {
+                throw std::runtime_error("Invalid input at line " + std::to_string(line_number));
+            }
+        }
+
+        oss.str(iss.str());
+        in_graph = reader(oss);
+
+        if (t_options.at("--device") == "cpu") {
+            CpuMST mst {};
+            out_graph = mst(std::move(in_graph));
+        }
+
+        writer(std::move(out_graph), std::cout);
+    }
+}
+
+int main(int32_t argc, char const* argv[])
+{
     try {
         auto options = parse_arguments(argc, argv);
 
-        ReadGraph reader {};
-        WriteGraph writer {};
-        InGraph in_graph {};
-        OutGraph out_graph {};
-
         if (options["--stream"] == "no") {
-            std::cout << "Steiner tree problem.\n";
-            std::cout << "Program version: " << __PROGRAM_VERSION__ << '\n';
-            std::cout << "C++ Standard: " << __cplusplus << "\n\n";
-            std::cout << "Program options:\n";
-            std::cout << "[--graph] Path to the input graph file: " << options["--graph"] << '\n';
-            std::cout << "[--mst] Path to the output mst file: " << options["--mst"] << '\n';
-            std::cout << "[--device] Device to use: " << options["--device"] << "\n";
-            std::cout << "[--stream] Stream mode: " << options["--stream"] << "\n\n";
-            std::cout << std::flush;
-
-            in_graph = reader(options["--graph"]);
-
-            if (options["--device"] == "cpu") {
-                CpuMST mst {};
-                out_graph = mst(in_graph);
-            } else {
-            }
-
-            auto results = writer(out_graph, options["--mst"]);
-
-            std::cout << "Total MST nodes: " << results["total_nodes"] << '\n';
-            std::cout << "Total MST edges: " << results["total_edges"] << '\n';
-            std::cout << "Total MST weight: " << results["total_weight"] << '\n';
-
-            std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
-            std::cout << "\nExecution Time: " << diff.count() << " s\n";
-            std::cout << std::flush;
+            return process_graph(options);
         } else {
-            std::string stream_token;
-
-            while (true) {
-                std::ostringstream iss {};
-
-                while (std::getline(std::cin, stream_token)) {
-                    if (stream_token == "EXIT") {
-                        std::cout << "Exit successfully." << std::endl;
-                        return EXIT_SUCCESS;
-                    }
-
-                    if (stream_token == "EOF") {
-                        break;
-                    }
-
-                    iss << stream_token << '\n';
-                }
-
-                std::istringstream oss(iss.str());
-                in_graph = reader(oss);
-
-                if (options["--device"] == "cpu") {
-                    CpuMST mst {};
-                    out_graph = mst(in_graph);
-                }
-
-                std::cout << writer(out_graph) << std::endl;
-            }
+            return stream_graph(options);
         }
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

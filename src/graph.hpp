@@ -96,7 +96,7 @@ struct PairHash {
      * @param p A constant reference to a pair of int32_t.
      * @return A size_t representing the hash value of the input pair.
      */
-    std::size_t operator()(const std::pair<int32_t, int32_t>& p) const
+    int32_t operator()(const std::pair<int32_t, int32_t>& p) const
     {
         auto b = std::hash<int32_t> {}(p.first);
         auto a = std::hash<int32_t> {}(p.second);
@@ -106,6 +106,7 @@ struct PairHash {
 
 /**
  * @brief Generates an ordered pair from two integers.
+ * 
  * @param t_a First integer.
  * @param t_b Second integer.
  * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.
@@ -113,7 +114,7 @@ struct PairHash {
 inline std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) noexcept { return std::make_pair(std::min(t_a, t_b), std::max(t_a, t_b)); };
 
 /**
- * @struct
+ * @struct InGraph
  * @brief Structure representing a graph.
  *
  * The Graph consists of nodes which are connected by edges. Each node is

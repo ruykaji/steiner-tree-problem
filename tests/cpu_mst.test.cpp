@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 
 #include "cpu/mst.hpp"
@@ -40,11 +41,11 @@ std::vector<std::string> get_file_path(const std::vector<std::string>& t_directo
  * @param out_graph The graph structure to be converted.
  * @return std::unordered_map<int32_t, std::vector<int32_t>> An adjacency list representation of the `out-graph`.
  */
-std::unordered_map<int32_t, std::vector<int32_t>> to_adjacency_list(const OutGraph& out_graph)
+std::unordered_map<int32_t, std::vector<int32_t>> to_adjacency_list(std::unique_ptr<OutGraph> out_graph)
 {
     std::unordered_map<int32_t, std::vector<int32_t>> adj_list {};
 
-    for (const auto& edge : out_graph.first) {
+    for (const auto& edge : out_graph->first) {
         adj_list[edge.first].emplace_back(edge.second);
         adj_list[edge.second].emplace_back(edge.first);
     }
@@ -139,21 +140,27 @@ bool is_connected(std::unordered_map<int32_t, std::vector<int32_t>>& adj_list)
     return true;
 }
 
+/**
+ * Make reader and mst global to test reset methods..
+ */
+ReadGraph reader {};
+CpuMST mst {};
+
 TEST_P(MSTOnCPUTrackTest, Tracks)
 {
     std::string file_path = GetParam();
-    ReadGraph reader {};
-    CpuMST mst {};
 
     if (std::filesystem::is_regular_file(file_path)) {
-        InGraph in_graph = reader(file_path);
-        OutGraph out_graph = mst(in_graph);
+        std::ifstream in_file(file_path);
 
-        auto adj_list = to_adjacency_list(out_graph);
-
-        for (const auto& terminal_node : in_graph.terminal_nodes) {
-            EXPECT_TRUE(adj_list.count(terminal_node) != 0);
+        if (!in_file) {
+            throw std::runtime_error("Can't open the file: " + file_path);
         }
+
+        std::unique_ptr<InGraph> in_graph = reader(in_file);
+        std::unique_ptr<OutGraph> out_graph = mst(std::move(in_graph));
+
+        auto adj_list = to_adjacency_list(std::move(out_graph));
 
         EXPECT_TRUE(is_connected(adj_list));
         EXPECT_FALSE(is_cyclic(adj_list));

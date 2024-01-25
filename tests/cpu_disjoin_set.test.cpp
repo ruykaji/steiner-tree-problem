@@ -13,7 +13,7 @@ TEST(Cpu_Disjoin_Set, Make_Set_And_Find)
     EXPECT_EQ(disjoin_set.find(1), 1);
     EXPECT_EQ(disjoin_set.find(2), 2);
     EXPECT_EQ(disjoin_set.find(3), 3);
-    EXPECT_EQ(disjoin_set.find(4), -1);
+    EXPECT_THROW(disjoin_set.find(4), std::runtime_error);
 }
 
 TEST(Cpu_Disjoin_Set, Make_Set_Unite_And_Find)
