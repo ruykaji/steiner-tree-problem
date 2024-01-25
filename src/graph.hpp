@@ -2,6 +2,7 @@
 #define __GRAPH_HPP__
 
 #include <cstdint>
+#include <span>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -106,7 +107,7 @@ struct PairHash {
 
 /**
  * @brief Generates an ordered pair from two integers.
- * 
+ *
  * @param t_a First integer.
  * @param t_b Second integer.
  * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.

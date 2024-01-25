@@ -70,7 +70,7 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
     WriteGraph writer {};
     std::unique_ptr<InGraph> in_graph {};
     std::unique_ptr<OutGraph> out_graph {};
-    std::ifstream in_file(t_options.at("--graph"));
+    std::ifstream in_file(t_options.at("--graph"), std::ios::binary);
 
     if (!in_file) {
         throw std::runtime_error("Can't open the file: " + t_options.at("--graph"));
@@ -86,7 +86,7 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
     std::cout << "Total MST nodes: " << out_graph->first.size() << '\n';
     std::cout << "Total MST weight: " << out_graph->second << '\n';
 
-    std::ofstream out_file(t_options.at("--mst"));
+    std::ofstream out_file(t_options.at("--mst"), std::ios::binary);
 
     if (!out_file) {
         throw std::runtime_error("Can't open the file: " + t_options.at("--mst"));

@@ -151,7 +151,7 @@ TEST_P(MSTOnCPUTrackTest, Tracks)
     std::string file_path = GetParam();
 
     if (std::filesystem::is_regular_file(file_path)) {
-        std::ifstream in_file(file_path);
+        std::ifstream in_file(file_path, std::ios::binary);
 
         if (!in_file) {
             throw std::runtime_error("Can't open the file: " + file_path);

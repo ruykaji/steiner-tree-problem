@@ -9,7 +9,7 @@ TEST(Input_Graph, Parse_File)
     ReadGraph reader {};
 
     if (std::filesystem::exists("../../tests/files/Track1/instance001.gr")) {
-        std::ifstream in_file("../../tests/files/Track1/instance001.gr");
+        std::ifstream in_file("../../tests/files/Track1/instance001.gr", std::ios::binary);
 
         if (!in_file) {
             throw std::runtime_error("Can't open the file: ../../tests/files/Track1/instance001.gr");

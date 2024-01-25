@@ -1,14 +1,18 @@
 #ifndef __IOGRAPH_HPP__
 #define __IOGRAPH_HPP__
 
+#include <cstring>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 #include "graph.hpp"
+
+constexpr std::size_t MAX_CHUNK_SIZE = 65536;
 
 /**
  * @class ReadGraph
@@ -33,19 +37,44 @@ public:
         m_line_number = 0;
         m_graph = std::make_unique<InGraph>();
 
-        std::string line;
+        std::size_t chunk_size = MAX_CHUNK_SIZE;
+        std::size_t partial_length = 0;
+        std::string chunk(chunk_size, ' ');
 
-        while (std::getline(t_in_stream, line)) {
-            ++m_line_number;
+        while (t_in_stream) {
+            t_in_stream.read(chunk.data() + partial_length, chunk_size - partial_length);
 
-            if (line.empty()) {
-                continue;
+            if (!t_in_stream && !t_in_stream.eof()) {
+                throw std::runtime_error("File has been corrupted!");
             }
 
-            m_ss.clear();
-            m_ss.str(line);
+            std::size_t bytes_read = t_in_stream.gcount() + partial_length;
+            std::size_t last_new_line = chunk.rfind('\n', bytes_read - 1);
 
-            parse_line();
+            if (last_new_line != std::string::npos && bytes_read != 0) {
+                std::size_t left = 0;
+                std::string_view chunk_view(chunk);
+
+                while (left < last_new_line) {
+                    std::size_t right = chunk.find('\n', left);
+
+                    if (right == std::string::npos)
+                        break;
+
+                    parse_line(chunk_view.substr(left, right - left));
+
+                    left = right + 1;
+                }
+
+                partial_length = bytes_read - (last_new_line + 1);
+                std::memmove(&chunk[0], &chunk[last_new_line + 1], partial_length);
+            } else {
+                partial_length = bytes_read;
+            }
+        }
+
+        if (partial_length != 0) {
+            parse_line(chunk.substr(0, partial_length));
         }
 
         return std::move(m_graph);
@@ -57,8 +86,11 @@ private:
      *
      * @param t_graph Reference to the graph being constructed.
      */
-    void parse_line()
+    void parse_line(std::string_view line)
     {
+        m_ss.clear();
+        m_ss.str(std::string(line));
+
         std::string token;
         m_ss >> token;
 
@@ -112,7 +144,7 @@ private:
     void parse_number_nodes()
     {
         if (!m_graph->nodes.empty()) {
-            throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
+            throw std::runtime_error("Attempt to set nodes size after adding a node at line: " + std::to_string(m_line_number));
         }
 
         int32_t num_nodes;
@@ -134,7 +166,7 @@ private:
     void parse_number_edges()
     {
         if (!m_graph->nodes.empty()) {
-            throw std::runtime_error("Attempt to set size after adding a edge at line: " + std::to_string(m_line_number));
+            throw std::runtime_error("Attempt to set edges size after adding a edge at line: " + std::to_string(m_line_number));
         }
 
         int32_t num_edges;
@@ -156,7 +188,7 @@ private:
     void parse_number_terminals()
     {
         if (!m_graph->terminal_nodes.empty()) {
-            throw std::runtime_error("Attempt to set size after adding a node at line: " + std::to_string(m_line_number));
+            throw std::runtime_error("Attempt to set terminal size after adding a node at line: " + std::to_string(m_line_number));
         }
 
         int32_t num_terminals;
