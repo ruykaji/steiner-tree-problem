@@ -45,9 +45,9 @@ std::unordered_map<int32_t, std::vector<int32_t>> to_adjacency_list(std::unique_
 {
     std::unordered_map<int32_t, std::vector<int32_t>> adj_list {};
 
-    for (const auto& edge : out_graph->first) {
-        adj_list[edge.first].emplace_back(edge.second);
-        adj_list[edge.second].emplace_back(edge.first);
+    for (auto it = out_graph->begin(); it != out_graph->end(); ++it) {
+        adj_list[it->first].emplace_back(it->second);
+        adj_list[it->second].emplace_back(it->first);
     }
 
     return adj_list;

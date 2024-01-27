@@ -78,13 +78,16 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
 
     in_graph = reader(in_file);
 
+    std::chrono::duration<double> read_time = std::chrono::high_resolution_clock::now() - start;
+    std::cout << "Read time: " << read_time.count() << "s\n";
+
     if (t_options.at("--device") == "cpu") {
         CpuMST mst {};
         out_graph = mst(std::move(in_graph));
     }
 
-    std::cout << "Total MST nodes: " << out_graph->first.size() << '\n';
-    std::cout << "Total MST weight: " << out_graph->second << '\n';
+    std::chrono::duration<double> solve_time = (std::chrono::high_resolution_clock::now() - start) - read_time;
+    std::cout << "Solve time: " << solve_time.count() << "s\n\n";
 
     std::ofstream out_file(t_options.at("--mst"), std::ios::binary);
 
@@ -94,9 +97,7 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
 
     writer(std::move(out_graph), out_file);
 
-    std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
-
-    std::cout << "\nExecution Time: " << diff.count() << "s" << std::endl;
+    std::cout << "Total time: " << (solve_time + read_time).count() << "s" << std::endl;
 
     return EXIT_SUCCESS;
 };

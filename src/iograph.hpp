@@ -61,6 +61,7 @@ public:
                     if (right == std::string::npos)
                         break;
 
+                    ++m_line_number;
                     parse_line(chunk_view.substr(left, right - left));
 
                     left = right + 1;
@@ -88,36 +89,20 @@ private:
      */
     void parse_line(std::string_view line)
     {
-        m_ss.clear();
-        m_ss.str(std::string(line));
-
-        std::string token;
-        m_ss >> token;
+        std::string_view token = line.substr(0, line.find(' '));
 
         if (token == "Nodes") {
-            parse_number_nodes();
+            parse_number_nodes(line);
         } else if (token == "Edges") {
-            parse_number_edges();
+            parse_number_edges(line);
         } else if (token == "Terminals") {
-            parse_number_terminals();
+            parse_number_terminals(line);
         } else if (token == "E") {
-            parse_edge();
+            parse_edge(line);
         } else if (token == "T") {
-            parse_terminal();
+            parse_terminal(line);
         }
     };
-
-    /**
-     * @brief Validates the stream state after attempting to read from it.
-     *
-     * @throws std::runtime_error If the stream is in a failed state.
-     */
-    void validate_stream() const
-    {
-        if (m_ss.fail()) {
-            throw std::runtime_error("Invalid input at line " + std::to_string(m_line_number));
-        }
-    }
 
     /**
      * @brief Validates if a node index is within the bounds of the graph.
@@ -128,7 +113,7 @@ private:
      */
     void validate_bounds(std::size_t t_node_index, std::size_t t_size) const
     {
-        if (t_node_index > t_size) {
+        if (t_node_index > t_size || t_node_index < 1) {
             throw std::runtime_error("Node index out of bounds at line " + std::to_string(m_line_number));
         }
     }
@@ -141,17 +126,13 @@ private:
      *
      * @throws std::runtime_error If the nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_nodes()
+    void parse_number_nodes(std::string_view line)
     {
         if (!m_graph->nodes.empty()) {
             throw std::runtime_error("Attempt to set nodes size after adding a node at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_nodes;
-        m_ss >> num_nodes;
-
-        validate_stream();
-
+        int32_t num_nodes = std::atoi(line.data() + 6); // Assume that line starts with "Nodes "
         m_graph->nodes.reserve(num_nodes);
     }
 
@@ -163,18 +144,15 @@ private:
      *
      * @throws std::runtime_error If the edges have already been initialized or if the input is invalid.
      */
-    void parse_number_edges()
+    void parse_number_edges(std::string_view line)
     {
         if (!m_graph->nodes.empty()) {
             throw std::runtime_error("Attempt to set edges size after adding a edge at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_edges;
-        m_ss >> num_edges;
-
-        validate_stream();
-
-        m_graph->map_edge_weight.reserve(num_edges);
+        int32_t num_edges = std::atoi(line.data() + 6); // Assume that line starts with "Edges "
+        m_graph->edges.reserve(num_edges);
+        // m_graph->map_edge_weight.reserve(num_edges);
     }
 
     /**
@@ -185,17 +163,13 @@ private:
      *
      * @throws std::runtime_error If the terminal nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_terminals()
+    void parse_number_terminals(std::string_view line)
     {
         if (!m_graph->terminal_nodes.empty()) {
             throw std::runtime_error("Attempt to set terminal size after adding a node at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_terminals;
-        m_ss >> num_terminals;
-
-        validate_stream();
-
+        int32_t num_terminals = std::atoi(line.data() + 9); // Assume that line starts with "Terminals "
         m_graph->terminal_nodes.reserve(num_terminals);
     }
 
@@ -207,21 +181,36 @@ private:
      *
      * @throws std::runtime_error If the input is invalid or if the node indices are out of bounds.
      */
-    void parse_edge()
+    void parse_edge(std::string_view line)
     {
         int32_t from_node;
         int32_t to_node;
         double weight;
 
-        m_ss >> from_node >> to_node >> weight;
+        {
+            std::size_t left = 2; // Assume that line starts with "E "
+            std::size_t right = 0;
 
-        validate_stream();
+            right = line.find(' ', left);
+            from_node = std::atoi(line.substr(left, right - left).data());
+
+            left = right + 1;
+            right = line.find(' ', left);
+            to_node = std::atoi(line.substr(left, right - left).data());
+
+            left = right + 1;
+            weight = std::atof(line.data() + left);
+        }
+
         validate_bounds(from_node, m_graph->nodes.bucket_count());
         validate_bounds(to_node, m_graph->nodes.bucket_count());
 
-        m_graph->nodes[from_node].emplace_back(Edge(weight, from_node, to_node));
-        m_graph->nodes[to_node].emplace_back(Edge(weight, to_node, from_node));
-        m_graph->map_edge_weight[ordered_pair(from_node, to_node)] = weight;
+        Edge new_edge(weight, std::min(from_node, to_node), std::max(from_node, to_node));
+
+        m_graph->edges.emplace_back(new_edge);
+        m_graph->nodes[from_node].emplace_back(&m_graph->edges.back());
+        m_graph->nodes[to_node].emplace_back(&m_graph->edges.back());
+        // m_graph->map_edge_weight[ordered_pair(from_node, to_node)] = weight;
     }
 
     /**
@@ -232,20 +221,15 @@ private:
      *
      * @throws std::runtime_error If the input is invalid or if the node index is out of bounds.
      */
-    void parse_terminal()
+    void parse_terminal(std::string_view line)
     {
-        int32_t terminal_node;
-        m_ss >> terminal_node;
-
-        validate_stream();
+        int32_t terminal_node = std::atoi(line.data() + 2); // Assume that line starts with "T "
         validate_bounds(terminal_node, m_graph->nodes.bucket_count());
-
         m_graph->terminal_nodes.insert(terminal_node);
     }
 
 private:
     std::size_t m_line_number {}; ///> Line number tracker for input file parsing.
-    std::istringstream m_ss {}; ///> String stream for line processing.
     std::unique_ptr<InGraph> m_graph {}; ///> In graph that will be constructed.
 };
 
@@ -270,9 +254,11 @@ public:
      */
     void operator()(std::unique_ptr<OutGraph> t_graph, std::ostream& t_out_stream)
     {
-        for (const auto& edge : t_graph->first) {
-            t_out_stream << "E " << edge.first << ' ' << edge.second << '\n';
+        for (auto it = t_graph->begin(); it != t_graph->end(); ++it) {
+            t_out_stream << "E " << it->first << ' ' << it->second << std::endl;
         }
+
+        t_out_stream << "EOF" << std::endl;
     };
 };
 

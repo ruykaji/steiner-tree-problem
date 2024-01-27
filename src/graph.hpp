@@ -123,8 +123,8 @@ inline std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) noexce
  * some nodes are designated as terminal nodes.
  */
 struct InGraph {
-    std::unordered_map<int32_t, std::vector<Edge>> nodes {}; ///> Map of node IDs to their corresponding list of edges.
-    std::unordered_map<std::pair<int32_t, int32_t>, double, PairHash> map_edge_weight {}; ///> Map of edges to their weights in graph.
+    std::vector<Edge> edges {}; ///> List of a graph's edges.
+    std::unordered_map<int32_t, std::vector<Edge*>> nodes {}; ///> Map of node IDs to their corresponding list of edges.
     std::unordered_set<int32_t> terminal_nodes {}; ///> List of terminal node IDs.
 };
 
@@ -132,6 +132,6 @@ struct InGraph {
  * @typedef OutGraph
  * @brief Output graph. Contains the all mst edges corrsponding to input graph and total weight.
  */
-using OutGraph = std::pair<std::vector<std::pair<int32_t, int32_t>>, double>;
+using OutGraph = std::vector<std::pair<int32_t, int32_t>>;
 
 #endif

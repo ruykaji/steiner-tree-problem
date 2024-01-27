@@ -56,10 +56,10 @@ private:
     {
         m_edge_queue = std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>>();
         m_terminal_set.clear();
-        m_source.clear();
-        m_length.clear();
-        m_prev.clear();
         m_mst_edges.clear();
+        m_source.assign(m_graph->nodes.size(), -1);
+        m_length.assign(m_graph->nodes.size(), std::numeric_limits<double>::max());
+        m_prev.assign(m_graph->nodes.size(), -1);
     }
 
     /**
@@ -70,18 +70,19 @@ private:
      */
     void initialize_terminals_and_queue()
     {
-        m_source.resize(m_graph->nodes.size(), -1);
-        m_prev.resize(m_graph->nodes.size(), -1);
-        m_length.resize(m_graph->nodes.size(), 0.0);
-        m_mst_edges.reserve(m_graph->terminal_nodes.size() - 1);
-
         for (const auto& terminal : m_graph->terminal_nodes) {
             m_terminal_set.make_set(terminal);
             m_source[terminal - 1] = terminal;
             m_length[terminal - 1] = 0;
 
-            for (const auto& edge : m_graph->nodes[terminal]) {
-                m_edge_queue.emplace(edge);
+            auto range = m_graph->nodes.equal_range(terminal);
+
+            for (const auto edge : m_graph->nodes[terminal]) {
+                if (edge->get_source() == terminal) {
+                    m_edge_queue.emplace(*edge);
+                } else {
+                    m_edge_queue.emplace(Edge(edge->get_weight(), edge->get_destination(), edge->get_source()));
+                }
             }
         }
     }
@@ -108,11 +109,11 @@ private:
                 m_length[destination - 1] = weight;
                 m_prev[destination - 1] = prev_source;
 
-                for (const auto& e : m_graph->nodes[destination]) {
-                    int32_t local_destination = e.get_destination();
+                for (auto e : m_graph->nodes[destination]) {
+                    int32_t local_destination = e->get_destination() != destination ? e->get_destination() : e->get_source();
 
                     if (m_source[local_destination - 1] == -1) {
-                        m_edge_queue.emplace(Edge(e.get_weight() + weight, source, local_destination, destination, -1));
+                        m_edge_queue.emplace(Edge(e->get_weight() + weight, source, local_destination, destination, -1));
                     }
                 }
             } else if (m_terminal_set.find(m_source[destination - 1]) != m_terminal_set.find(source)) {
@@ -134,13 +135,6 @@ private:
     std::unique_ptr<OutGraph> restore_mst()
     {
         std::unordered_set<std::pair<int32_t, int32_t>, PairHash> result_path {};
-        double mst_weight {};
-
-        auto add_edge = [&](const std::pair<int32_t, int32_t>& edge) {
-            if (result_path.insert(edge).second) {
-                mst_weight += m_graph->map_edge_weight[edge];
-            }
-        };
 
         for (const auto& edge : m_mst_edges) {
             int32_t source = edge.get_source();
@@ -152,33 +146,33 @@ private:
             while (prev_source != -1 && m_prev[prev_source - 1] != -1) {
                 pair = ordered_pair(m_prev[prev_source - 1], prev_source);
                 prev_source = m_prev[prev_source - 1];
-                add_edge(pair);
+                result_path.insert(pair);
             }
 
             while (prev_destination != -1 && m_prev[prev_destination - 1] != -1) {
                 pair = ordered_pair(prev_destination, m_prev[prev_destination - 1]);
                 prev_destination = m_prev[prev_destination - 1];
-                add_edge(pair);
+                result_path.insert(pair);
             }
 
             if (prev_source == -1 && prev_destination == -1) {
                 pair = ordered_pair(source, destination);
-                add_edge(pair);
+                result_path.insert(pair);
             } else {
                 pair = prev_source != -1 ? ordered_pair(source, prev_source) : ordered_pair(source, edge.get_prev_destination());
-                add_edge(pair);
+                result_path.insert(pair);
 
                 pair = prev_destination != -1 ? ordered_pair(prev_destination, destination) : ordered_pair(edge.get_prev_source(), destination);
-                add_edge(pair);
+                result_path.insert(pair);
 
                 if (prev_source != -1 && prev_destination != -1) {
                     pair = ordered_pair(edge.get_prev_source(), edge.get_prev_destination());
-                    add_edge(pair);
+                    result_path.insert(pair);
                 }
             }
         }
 
-        return std::make_unique<OutGraph>(std::make_pair(std::vector<std::pair<int32_t, int32_t>>(result_path.begin(), result_path.end()), mst_weight));
+        return std::make_unique<OutGraph>(std::vector<std::pair<int32_t, int32_t>>(result_path.begin(), result_path.end()));
     }
 
 private:
