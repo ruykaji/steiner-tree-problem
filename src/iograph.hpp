@@ -128,12 +128,12 @@ private:
      */
     void parse_number_nodes(std::string_view line)
     {
-        if (!m_graph->nodes.empty()) {
+        if (!m_graph->adj_list.nodes.empty()) {
             throw std::runtime_error("Attempt to set nodes size after adding a node at line: " + std::to_string(m_line_number));
         }
 
         int32_t num_nodes = std::atoi(line.data() + 6); // Assume that line starts with "Nodes "
-        m_graph->nodes.reserve(num_nodes);
+        m_graph->adj_list.nodes.resize(num_nodes, {});
     }
 
     /**
@@ -146,13 +146,12 @@ private:
      */
     void parse_number_edges(std::string_view line)
     {
-        if (!m_graph->nodes.empty()) {
+        if (!m_graph->adj_list.edges.empty()) {
             throw std::runtime_error("Attempt to set edges size after adding a edge at line: " + std::to_string(m_line_number));
         }
 
         int32_t num_edges = std::atoi(line.data() + 6); // Assume that line starts with "Edges "
-        m_graph->edges.reserve(num_edges);
-        // m_graph->map_edge_weight.reserve(num_edges);
+        m_graph->adj_list.edges.reserve(num_edges);
     }
 
     /**
@@ -202,15 +201,14 @@ private:
             weight = std::atof(line.data() + left);
         }
 
-        validate_bounds(from_node, m_graph->nodes.bucket_count());
-        validate_bounds(to_node, m_graph->nodes.bucket_count());
+        validate_bounds(from_node, m_graph->adj_list.nodes.size());
+        validate_bounds(to_node, m_graph->adj_list.nodes.size());
 
         Edge new_edge(weight, std::min(from_node, to_node), std::max(from_node, to_node));
 
-        m_graph->edges.emplace_back(new_edge);
-        m_graph->nodes[from_node].emplace_back(&m_graph->edges.back());
-        m_graph->nodes[to_node].emplace_back(&m_graph->edges.back());
-        // m_graph->map_edge_weight[ordered_pair(from_node, to_node)] = weight;
+        m_graph->adj_list.edges.emplace_back(new_edge);
+        m_graph->adj_list.nodes[from_node - 1].emplace_back(&m_graph->adj_list.edges.back());
+        m_graph->adj_list.nodes[to_node - 1].emplace_back(&m_graph->adj_list.edges.back());
     }
 
     /**
@@ -224,11 +222,12 @@ private:
     void parse_terminal(std::string_view line)
     {
         int32_t terminal_node = std::atoi(line.data() + 2); // Assume that line starts with "T "
-        validate_bounds(terminal_node, m_graph->nodes.bucket_count());
+        validate_bounds(terminal_node, m_graph->adj_list.nodes.size());
         m_graph->terminal_nodes.insert(terminal_node);
     }
 
 private:
+    std::size_t m_edge_number {};
     std::size_t m_line_number {}; ///> Line number tracker for input file parsing.
     std::unique_ptr<InGraph> m_graph {}; ///> In graph that will be constructed.
 };
@@ -252,10 +251,28 @@ public:
      * @param t_graph A constant reference to the OutGraph object representing the graph.
      * @param t_out_stream A reference to a output stream
      */
-    void operator()(std::unique_ptr<OutGraph> t_graph, std::ostream& t_out_stream)
+    void operator()(std::unique_ptr<OutGraph> t_graph, std::ostream& t_out_stream, bool t_additional_data = false)
     {
-        for (auto it = t_graph->begin(); it != t_graph->end(); ++it) {
-            t_out_stream << "E " << it->first << ' ' << it->second << std::endl;
+        if (t_additional_data) {
+            double total_weight {};
+            std::unordered_set<int32_t> nodes {};
+
+            for (const auto& edge : t_graph->result_path) {
+                auto it = t_graph->adj_list.get_edge(edge.first, edge.second);
+
+                nodes.insert(edge.first);
+                nodes.insert(edge.second);
+                total_weight += (*it)->get_weight();
+
+                t_out_stream << "E " << edge.first << ' ' << edge.second << ' ' << (*it)->get_weight() << '\n';
+            }
+
+            t_out_stream << "NODES " << nodes.size() << '\n';
+            t_out_stream << "WEIGHT " << total_weight << '\n';
+        } else {
+            for (const auto& edge : t_graph->result_path) {
+                t_out_stream << "E " << edge.first << ' ' << edge.second << std::endl;
+            }
         }
 
         t_out_stream << "EOF" << std::endl;

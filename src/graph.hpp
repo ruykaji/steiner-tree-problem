@@ -85,34 +85,37 @@ private:
 };
 
 /**
- * @struct PairHash
- * @brief Custom hash function for std::pair<int32_t, int32_t>.
+ * @struct AdjacencyList
+ * @brief A structure to represent an adjacency list of a graph.
  *
- * This struct provides a custom hash function for pairs of integers, which is used in std::unordered_set.
+ * This structure provides an efficient representation of a graph using an adjacency list.
+ * It stores a list of edges and a mapping of node IDs to their corresponding edges.
  */
-struct PairHash {
+struct AdjacencyList {
     /**
-     * @brief Hash function operator.
-     *
-     * @param p A constant reference to a pair of int32_t.
-     * @return A size_t representing the hash value of the input pair.
+     * @brief List of all edges in the graph.
      */
-    int32_t operator()(const std::pair<int32_t, int32_t>& p) const
-    {
-        auto b = std::hash<int32_t> {}(p.first);
-        auto a = std::hash<int32_t> {}(p.second);
-        return (a + b - 2) * (a + b - 1) / 2 + a;
-    }
-};
+    std::vector<Edge> edges {};
 
-/**
- * @brief Generates an ordered pair from two integers.
- *
- * @param t_a First integer.
- * @param t_b Second integer.
- * @return An ordered pair where the first element is the minimum of t_a and t_b, and the second element is the maximum.
- */
-inline std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) noexcept { return std::make_pair(std::min(t_a, t_b), std::max(t_a, t_b)); };
+    /**
+     * @brief Map of node IDs to their corresponding list of edges.
+     */
+    std::vector<std::vector<Edge*>> nodes {};
+
+    /**
+     * @brief Finds an edge between two specified nodes.
+     *
+     * @param t_a The ID of the first node.
+     * @param t_b The ID of the second node.
+     * @return An iterator to the found Edge in the adjacency list. If no edge is found, it returns a const iterator to the end of the adjacency list for node t_a.
+     */
+    std::vector<Edge*>::iterator const get_edge(int32_t t_a, int32_t t_b)
+    {
+        return std::find_if(nodes[t_a - 1].begin(), nodes[t_a - 1].end(), [this, t_a, t_b](Edge* edge) {
+            return (t_a == edge->get_source() || t_a == edge->get_destination()) && (t_b == edge->get_source() || t_b == edge->get_destination());
+        });
+    };
+};
 
 /**
  * @struct InGraph
@@ -123,15 +126,17 @@ inline std::pair<int32_t, int32_t> ordered_pair(int32_t t_a, int32_t t_b) noexce
  * some nodes are designated as terminal nodes.
  */
 struct InGraph {
-    std::vector<Edge> edges {}; ///> List of a graph's edges.
-    std::unordered_map<int32_t, std::vector<Edge*>> nodes {}; ///> Map of node IDs to their corresponding list of edges.
+    AdjacencyList adj_list {}; ///> Adjacency list of the input graph.
     std::unordered_set<int32_t> terminal_nodes {}; ///> List of terminal node IDs.
 };
 
 /**
- * @typedef OutGraph
+ * @struct OutGraph
  * @brief Output graph. Contains the all mst edges corrsponding to input graph and total weight.
  */
-using OutGraph = std::vector<std::pair<int32_t, int32_t>>;
+struct OutGraph {
+    AdjacencyList adj_list {}; ///> Adjacency list of the input graph.
+    std::vector<std::pair<int32_t, int32_t>> result_path {}; ///> Result mst path edges in int pair format.
+};
 
 #endif

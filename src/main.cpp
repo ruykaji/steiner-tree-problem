@@ -87,7 +87,7 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
     }
 
     std::chrono::duration<double> solve_time = (std::chrono::high_resolution_clock::now() - start) - read_time;
-    std::cout << "Solve time: " << solve_time.count() << "s\n\n";
+    std::cout << "Solve time: " << solve_time.count() << "s\n";
 
     std::ofstream out_file(t_options.at("--mst"), std::ios::binary);
 
@@ -95,9 +95,11 @@ inline int32_t process_graph(const std::unordered_map<std::string, std::string>&
         throw std::runtime_error("Can't open the file: " + t_options.at("--mst"));
     }
 
-    writer(std::move(out_graph), out_file);
+    writer(std::move(out_graph), out_file, true);
 
-    std::cout << "Total time: " << (solve_time + read_time).count() << "s" << std::endl;
+    std::chrono::duration<double> write_time = (std::chrono::high_resolution_clock::now() - start) - (read_time + solve_time);
+    std::cout << "Write time: " << write_time.count() << "s\n\n";
+    std::cout << "Total time: " << (solve_time + read_time + write_time).count() << "s" << std::endl;
 
     return EXIT_SUCCESS;
 };

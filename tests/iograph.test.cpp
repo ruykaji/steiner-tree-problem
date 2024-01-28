@@ -17,9 +17,8 @@ TEST(Input_Graph, Parse_File)
 
         std::unique_ptr<InGraph> in_graph = reader(in_file);
 
-        EXPECT_TRUE(!in_graph->nodes.empty());
+        EXPECT_TRUE(!in_graph->adj_list.nodes.empty());
         EXPECT_TRUE(!in_graph->terminal_nodes.empty());
-        // EXPECT_TRUE(!in_graph->map_edge_weight.empty());
     } else {
         FAIL() << "File does not exist: ../../tests/files/Track1/instance001.gr\n";
     }
