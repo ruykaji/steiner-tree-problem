@@ -13,7 +13,7 @@
 
 constexpr char INPUT_GRAPH_PATH[] = "./graph.txt";
 constexpr char OUTPUT_GRAPH_PATH[] = "./mst.txt";
-constexpr char STREAM[] = "no";
+constexpr char STREAM[] = "yes";
 constexpr char DEVICE[] = "cpu";
 
 inline std::unordered_map<std::string, std::string> parse_arguments(int argc, char const* argv[])
@@ -110,37 +110,9 @@ inline int stream_graph(const std::unordered_map<std::string, std::string>& t_op
     WriteGraph writer {};
     std::unique_ptr<InGraph> in_graph {};
     std::unique_ptr<OutGraph> out_graph {};
-    std::ostringstream iss {};
-    std::istringstream oss {};
-    std::string stream_token {};
 
     while (true) {
-        std::size_t line_number {};
-
-        iss.clear();
-        oss.clear();
-
-        while (std::getline(std::cin, stream_token)) {
-            ++line_number;
-
-            if (stream_token == "EXIT") {
-                std::cout << "Exit successfully." << std::endl;
-                return EXIT_SUCCESS;
-            }
-
-            if (stream_token == "EOF") {
-                break;
-            }
-
-            iss << stream_token << '\n';
-
-            if (iss.fail()) {
-                throw std::runtime_error("Invalid input at line " + std::to_string(line_number));
-            }
-        }
-
-        oss.str(iss.str());
-        in_graph = reader(oss);
+        in_graph = reader(std::cin);
 
         if (t_options.at("--device") == "cpu") {
             CpuMST mst {};

@@ -2,8 +2,8 @@
 #define __IOGRAPH_HPP__
 
 #include <cstring>
+#include <fstream>
 #include <memory>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -27,21 +27,22 @@ public:
     ~ReadGraph() = default;
 
     /**
-     * @brief Reads a graph from a input stream(file or stdin).
+     * @brief Reads a graph from a file stream(file or stdin).
      *
-     * @param t_in_stream The input graph stream.
+     * @param t_in_stream The file stream input graph stream.
      * @return Graph The constructed graph.
      */
-    std::unique_ptr<InGraph> operator()(std::istream& t_in_stream)
+    std::unique_ptr<InGraph> operator()(std::ifstream& t_in_stream)
     {
         m_line_number = 0;
         m_graph = std::make_unique<InGraph>();
 
+        int8_t status = 0;
         std::size_t chunk_size = MAX_CHUNK_SIZE;
         std::size_t partial_length = 0;
         std::string chunk(chunk_size, ' ');
 
-        while (t_in_stream) {
+        while (t_in_stream && status == 0) {
             t_in_stream.read(chunk.data() + partial_length, chunk_size - partial_length);
 
             if (!t_in_stream && !t_in_stream.eof()) {
@@ -62,7 +63,7 @@ public:
                         break;
 
                     ++m_line_number;
-                    parse_line(chunk_view.substr(left, right - left));
+                    status = parse_line(chunk_view.substr(left, right - left));
 
                     left = right + 1;
                 }
@@ -81,27 +82,54 @@ public:
         return std::move(m_graph);
     };
 
+    /**
+     * @brief Reads a graph from a input stream(file or stdin).
+     *
+     * @param t_in_stream The standard input graph stream.
+     * @return Graph The constructed graph.
+     */
+    std::unique_ptr<InGraph> operator()(std::istream& t_in_stream)
+    {
+        m_line_number = 0;
+        m_graph = std::make_unique<InGraph>();
+
+        int8_t status = 0;
+        std::string token {};
+
+        while (status == 0 && std::getline(t_in_stream, token)) {
+            status = parse_line(std::string_view(token));
+        }
+
+        return std::move(m_graph);
+    };
+
 private:
     /**
      * @brief Parses a single line from the input file.
      *
-     * @param t_graph Reference to the graph being constructed.
+     * @param t_line The line to parse.
      */
-    void parse_line(std::string_view line)
+    int8_t parse_line(std::string_view t_line)
     {
-        std::string_view token = line.substr(0, line.find(' '));
+        std::string_view token = t_line.substr(0, t_line.find(' '));
 
         if (token == "Nodes") {
-            parse_number_nodes(line);
+            parse_number_nodes(t_line);
         } else if (token == "Edges") {
-            parse_number_edges(line);
+            parse_number_edges(t_line);
         } else if (token == "Terminals") {
-            parse_number_terminals(line);
+            parse_number_terminals(t_line);
         } else if (token == "E") {
-            parse_edge(line);
+            parse_edge(t_line);
         } else if (token == "T") {
-            parse_terminal(line);
+            parse_terminal(t_line);
+        } else if (token == "EOF") {
+            return 1;
+        } else if (token == "EXIT") {
+            exit(EXIT_SUCCESS);
         }
+
+        return 0;
     };
 
     /**
@@ -121,66 +149,58 @@ private:
     /**
      * @brief Parses the number of nodes from the input stream and initializes the graph's node container.
      *
-     * This method should be called when a "Nodes" token is encountered in the input file. It reserves space in the
-     * graph's node map based on the number of nodes specified.
-     *
+     * @param t_line The line to parse.
      * @throws std::runtime_error If the nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_nodes(std::string_view line)
+    void parse_number_nodes(std::string_view t_line)
     {
         if (!m_graph->adj_list.nodes.empty()) {
             throw std::runtime_error("Attempt to set nodes size after adding a node at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_nodes = std::atoi(line.data() + 6); // Assume that line starts with "Nodes "
+        int32_t num_nodes = std::atoi(t_line.data() + 6); // Assume that line starts with "Nodes "
         m_graph->adj_list.nodes.resize(num_nodes, {});
     }
 
     /**
      * @brief Parses the number of edges from the input stream and initializes the graph's node container.
      *
-     * This method should be called when a "Edges" token is encountered in the input file. It reserves space in the
-     * graph's node map based on the number of edges specified.
-     *
+     * @param t_line The line to parse.
      * @throws std::runtime_error If the edges have already been initialized or if the input is invalid.
      */
-    void parse_number_edges(std::string_view line)
+    void parse_number_edges(std::string_view t_line)
     {
         if (!m_graph->adj_list.edges.empty()) {
             throw std::runtime_error("Attempt to set edges size after adding a edge at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_edges = std::atoi(line.data() + 6); // Assume that line starts with "Edges "
+        int32_t num_edges = std::atoi(t_line.data() + 6); // Assume that line starts with "Edges "
         m_graph->adj_list.edges.reserve(num_edges);
     }
 
     /**
      * @brief Parses the number of terminal nodes from the input stream and initializes the graph's terminal node container.
      *
-     * This method should be called when a "Terminals" token is encountered in the input file. It reserves space in the
-     * graph's terminal node list based on the number of terminal nodes specified.
-     *
+     * @param t_line The line to parse.
      * @throws std::runtime_error If the terminal nodes have already been initialized or if the input is invalid.
      */
-    void parse_number_terminals(std::string_view line)
+    void parse_number_terminals(std::string_view t_line)
     {
         if (!m_graph->terminal_nodes.empty()) {
             throw std::runtime_error("Attempt to set terminal size after adding a node at line: " + std::to_string(m_line_number));
         }
 
-        int32_t num_terminals = std::atoi(line.data() + 9); // Assume that line starts with "Terminals "
+        int32_t num_terminals = std::atoi(t_line.data() + 9); // Assume that line starts with "Terminals "
         m_graph->terminal_nodes.reserve(num_terminals);
     }
 
     /**
      * @brief Parses an edge from the input stream and adds it to the graph.
      *
-     * This method should be called when an "E" token is encountered in the input file. It reads the edge data (from node,
-     * to node, and weight) and adds the edge to the graph.
-     *
+     * @param t_line The line to parse.
      * @throws std::runtime_error If the input is invalid or if the node indices are out of bounds.
      */
-    void parse_edge(std::string_view line)
+    void parse_edge(std::string_view t_line)
     {
         int32_t from_node;
         int32_t to_node;
@@ -190,15 +210,15 @@ private:
             std::size_t left = 2; // Assume that line starts with "E "
             std::size_t right = 0;
 
-            right = line.find(' ', left);
-            from_node = std::atoi(line.substr(left, right - left).data());
+            right = t_line.find(' ', left);
+            from_node = std::atoi(t_line.substr(left, right - left).data());
 
             left = right + 1;
-            right = line.find(' ', left);
-            to_node = std::atoi(line.substr(left, right - left).data());
+            right = t_line.find(' ', left);
+            to_node = std::atoi(t_line.substr(left, right - left).data());
 
             left = right + 1;
-            weight = std::atof(line.data() + left);
+            weight = std::atof(t_line.data() + left);
         }
 
         validate_bounds(from_node, m_graph->adj_list.nodes.size());
@@ -214,14 +234,12 @@ private:
     /**
      * @brief Parses a terminal node from the input stream and adds it to the graph's list of terminal nodes.
      *
-     * This method should be called when a "T" token is encountered in the input file. It reads the terminal node index
-     * and adds it to the graph's list of terminal nodes.
-     *
+     * @param t_line The line to parse.
      * @throws std::runtime_error If the input is invalid or if the node index is out of bounds.
      */
-    void parse_terminal(std::string_view line)
+    void parse_terminal(std::string_view t_line)
     {
-        int32_t terminal_node = std::atoi(line.data() + 2); // Assume that line starts with "T "
+        int32_t terminal_node = std::atoi(t_line.data() + 2); // Assume that line starts with "T "
         validate_bounds(terminal_node, m_graph->adj_list.nodes.size());
         m_graph->terminal_nodes.insert(terminal_node);
     }
