@@ -13,7 +13,7 @@
 
 constexpr char INPUT_GRAPH_PATH[] = "./graph.txt";
 constexpr char OUTPUT_GRAPH_PATH[] = "./mst.txt";
-constexpr char STREAM[] = "yes";
+constexpr char STREAM[] = "no";
 constexpr char DEVICE[] = "cpu";
 
 inline std::unordered_map<std::string, std::string> parse_arguments(int argc, char const* argv[])
