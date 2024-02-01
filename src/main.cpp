@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "cpu/mst.hpp"
+#include "cuda/mst.hpp"
 #include "iograph.hpp"
 
 #define __PROGRAM_VERSION__ "v1.1.5"

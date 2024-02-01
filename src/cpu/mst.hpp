@@ -95,7 +95,7 @@ private:
      */
     void process_edges()
     {
-        while (!m_terminal_set.is_one_set()) {
+        while (true) {
             Edge edge = m_edge_queue.top();
             m_edge_queue.pop();
 
@@ -121,6 +121,10 @@ private:
                 if (m_in_graph->terminal_nodes.find(destination) != m_in_graph->terminal_nodes.end()) {
                     m_terminal_set.union_sets(source, destination);
                     m_mst_edges.emplace_back(edge);
+
+                    if (m_terminal_set.is_one_set()) {
+                        break;
+                    }
                 } else {
                     m_edge_queue.emplace(Edge(m_length[destination - 1] + weight, source, m_source[destination - 1], prev_source, destination));
                 }
