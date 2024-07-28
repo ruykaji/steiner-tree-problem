@@ -2,7 +2,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-#include "cpu/mst.hpp"
+#include "mst.hpp"
 #include "iograph.hpp"
 
 /**

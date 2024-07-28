@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "cpu/disjoin_set.hpp"
+#include "disjoin_set.hpp"
 
 TEST(Cpu_Disjoin_Set, Make_Set_And_Find)
 {
